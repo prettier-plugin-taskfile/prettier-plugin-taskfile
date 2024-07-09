@@ -1,6 +1,6 @@
 import {Plugin } from 'prettier'
 // @ts-ignore
-import { parsers, printer } from 'prettier/plugins/yaml'
+import { parsers } from 'prettier/plugins/yaml'
 import type { MappingItem, Root } from 'yaml-unist-parser'
 
 export const compareKeys = (a: MappingItem, b: MappingItem) => {
@@ -13,14 +13,12 @@ const plugin: Plugin = {
         yaml: {
             ...parsers.yaml,
             astFormat: 'yaml',
-            preprocess: (code, options) => {
-                const yaml = parsers.yaml.parse(code, options)
+            parse: (code, options) => {
+                const yaml: Root = parsers.yaml.parse(code, options)
                 // @ts-ignore
                 const mappings = yaml.children[0].children[1].children[0].children.sort()
                 mappings.sort(compareKeys)
-                console.log(JSON.stringify(mappings, null, 2))
-                // console.log(JSON.stringify(yaml, null, 2))
-                return code
+                return yaml
             }
         }
     }
