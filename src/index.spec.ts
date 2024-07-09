@@ -1,9 +1,9 @@
 import prettier from 'prettier'
-import plugin from './index'
+import plugin, { compareKeys } from './index'
 const code = `
+includes:
 version: '3'
 env:
-includes:
 tasks:
 vars:
 `
@@ -16,8 +16,8 @@ vars:
 env: # followed or replaced by dotenv
 tasks:
  */
-
 prettier.format(code, {
     parser: 'yaml',
     plugins: [plugin]
 }).then(formatted => console.log(formatted));
+
