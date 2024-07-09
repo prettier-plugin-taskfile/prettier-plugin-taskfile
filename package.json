@@ -11,9 +11,11 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "ts-node": "^10.9.2",
     "typescript": "^5.5.3"
   },
   "dependencies": {
-    "prettier": "^3.3.2"
+    "prettier": "^3.3.2",
+    "yaml-unist-parser": "^2.0.1"
   }
 }
