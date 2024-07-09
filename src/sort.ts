@@ -7,7 +7,7 @@ const getKey = ({ children: [keyItem] }: MappingItem) => {
 
 const PRIORITIES = ["version", "includes", "vars", "env", "tasks"]
 
-const extractItems = (items: MappingItem[]) => {
+const assortItems = (items: MappingItem[]) => {
     return items.reduce<{
         targets: MappingItem[], others: {
             index: number
@@ -51,9 +51,9 @@ const compareKeys = (a: MappingItem, b: MappingItem) => {
     return PRIORITIES.findIndex((ele) => ele === getKey(a)) - PRIORITIES.findIndex((ele) => ele === getKey(b))
 }
 
-export const sort = (mappings: MappingItem[]) => {
-    // 1. ソートする要素とソートしない要素に分割する
-    const { targets, others } = extractItems(mappings)
+export const sort = (mappingItems: MappingItem[]) => {
+    // 1. ソートする要素とソートしない要素に仕分ける
+    const { targets, others } = assortItems(mappingItems)
     // 2. ソートする要素はソートする
     targets.sort(compareKeys)
     // 3. ソートした要素とソートしない要素をマージする

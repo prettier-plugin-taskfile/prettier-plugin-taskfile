@@ -10,11 +10,11 @@ const plugin: Plugin = {
             astFormat: 'yaml',
             parse: (code, options) => {
                 const yaml: Root = parsers.yaml.parse(code, options)
-                // @ts-ignore
-                const mappings = yaml.children[0].children[1].children[0].children
-                const result = sort(mappings)
-                // @ts-ignore
-                yaml.children[0].children[1].children[0].children = result
+                const mapping = yaml.children[0].children[1].children[0]
+                if (mapping?.type !== 'mapping') return yaml
+                const mappingItems = mapping.children
+                const result = sort(mappingItems)
+                mapping.children = result
                 return yaml
             }
         }
