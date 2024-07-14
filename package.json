@@ -5,12 +5,15 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc src/index.ts --outDir dist",
-    "test": "ts-node src/index.spec.ts"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.3"
   },
