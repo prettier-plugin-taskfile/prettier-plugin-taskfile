@@ -1,5 +1,4 @@
 import {Printer} from 'prettier';
-// @ts-ignore
 import {printers} from 'prettier/plugins/yaml'
 import type {Root} from 'yaml-unist-parser'
 import {sort} from './sort';
