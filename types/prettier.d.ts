@@ -1,4 +1,4 @@
-import {Parser, Printer} from 'prettier'
+import {Printer} from 'prettier'
 
 declare module "prettier/plugins/yaml" {
   export const printers: {

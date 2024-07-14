@@ -2,9 +2,9 @@
   "name": "prettier-plugin-taskfile",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "build": "tsc src/index.ts --outDir dist",
+    "build": "tsc",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "keywords": [],
