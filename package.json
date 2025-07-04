@@ -1,21 +1,37 @@
 {
   "name": "prettier-plugin-taskfile",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A Prettier plugin for formatting Taskfile YAML files",
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "default": "./dist/index.js"
+  },
   "scripts": {
-    "build": "tsc src/index.ts --outDir dist",
-    "test": "ts-node src/index.spec.ts"
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.0.4",
+    "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.3"
+    "typescript": "^5.8.3"
   },
   "dependencies": {
-    "prettier": "^3.3.2",
-    "yaml-unist-parser": "^2.0.1"
+    "prettier": "^3.6.2",
+    "yaml": "^2.8.0"
   }
 }
