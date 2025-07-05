@@ -1,0 +1,123 @@
+version: "3"
+
+vars:
+  DIST_DIR: dist
+  EXAMPLE_DIR: examples
+
+tasks:
+  build:
+    desc: Build the project
+    cmds:
+      - npm run build
+
+  test:
+    desc: Run tests
+    cmds:
+      - npm test
+
+  format:
+    desc: Format the code with prettier
+    cmds:
+      - npm run format
+
+  format-taskfiles:
+    desc: Format Taskfiles using this plugin
+    deps:
+      - build
+    cmds:
+      - prettier --write "Taskfile.yml" --plugin=./{{.DIST_DIR}}/index.js
+      - prettier --write "{{.EXAMPLE_DIR}}/**/*.{yml,yaml}" --plugin=./{{.DIST_DIR}}/index.js
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf {{.DIST_DIR}}
+
+  install:
+    desc: Install dependencies
+    cmds:
+      - npm install
+
+  ci:
+    desc: Run continuous integration tasks
+    deps:
+      - build
+      - test
+
+  publish:
+    desc: Publish to npm
+    deps:
+      - ci
+    cmds:
+      - npm publish
+
+  dev:
+    desc: Start development mode
+    cmds:
+      - npm run build:watch
+
+  example:
+    desc: Create and format example Taskfiles
+    deps:
+      - build
+    cmds:
+      - mkdir -p {{.EXAMPLE_DIR}}
+      - echo "Creating example Taskfile..."
+      - |
+        cat > {{.EXAMPLE_DIR}}/example-unformatted.yml << 'EOF'
+        tasks:
+          build:
+            cmds:
+              - echo "Building..."
+          test_suite:
+            cmds:
+              - echo "Testing..."
+          docker_stuff:
+
+            cmds:
+              - echo "Docker stuff"
+        env:
+          NODE_ENV: development
+        includes:
+          - ./common.yml
+        vars:
+          PROJECT: myproject
+          lowercase_var: should be uppercase
+          another_var: value
+        tasks_with_templates:
+          greet:
+            cmds:
+              - echo "Hello {{.NAME}}"
+              - |
+
+                echo "Project: {{.PROJECT}}"
+        version: '3'
+        EOF
+      - prettier --write "{{.EXAMPLE_DIR}}/example-unformatted.yml" --plugin=./{{.DIST_DIR}}/index.js --output-path="{{.EXAMPLE_DIR}}/example-formatted.yml"
+      - echo "Example Taskfiles created in {{.EXAMPLE_DIR}} directory"
+
+  setup-dev:
+    desc: Setup development environment
+    deps:
+      - install
+      - build
+      - example
+
+  release:
+    desc: Release a new version
+
+    vars:
+      VERSION: "{{.CLI_ARGS}}"
+    preconditions:
+      - sh: test -n "{{.VERSION}}"
+        msg: "VERSION is required. Usage: task release -- <version>"
+      - sh: git diff-index --quiet HEAD
+        msg: Working directory is not clean. Commit or stash changes first.
+    cmds:
+      - echo "Releasing version {{.VERSION}}..."
+      - npm version {{.VERSION}} --no-git-tag-version
+      - git add package.json package-lock.json
+      - git commit -m "Release v{{.VERSION}}"
+      - git tag -a v{{.VERSION}} -m "Release v{{.VERSION}}"
+      - |
+        echo "Version {{.VERSION}} released! To publish, run: git push && git push --tags && task publish"

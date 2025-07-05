@@ -1,0 +1,27 @@
+tasks:
+  build:
+    cmds:
+      - echo "Building..."
+  test_suite:
+    cmds:
+      - echo "Testing..."
+  docker_stuff:
+
+    cmds:
+      - echo "Docker stuff"
+env:
+  NODE_ENV: development
+includes:
+  - ./common.yml
+vars:
+  PROJECT: myproject
+  lowercase_var: should be uppercase
+  another_var: value
+tasks_with_templates:
+  greet:
+    cmds:
+      - echo "Hello "
+      - |
+
+        echo "Project: "
+version: '3'
