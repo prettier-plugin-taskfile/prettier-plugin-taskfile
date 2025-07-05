@@ -20,8 +20,13 @@
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
-  "keywords": ["prettier", "plugin", "taskfile", "formatter"],
-  "author": "",
+  "keywords": [
+    "prettier",
+    "plugin",
+    "taskfile",
+    "formatter"
+  ],
+  "author": "Keyhoh",
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^30.0.0",

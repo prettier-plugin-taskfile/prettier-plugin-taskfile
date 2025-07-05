@@ -16,7 +16,7 @@ describe("Index exports", () => {
     expect(index.removeTemplateWhitespace).toBeDefined();
     expect(index.processCommands).toBeDefined();
     expect(index.formatTaskfile).toBeDefined();
-    
+
     // Test function types
     expect(typeof index.sortTaskfileKeys).toBe("function");
     expect(typeof index.uppercaseVariableNames).toBe("function");
@@ -29,7 +29,7 @@ describe("Index exports", () => {
   test("should export utility functions", () => {
     expect(index.getYamlOptions).toBeDefined();
     expect(index.addEmptyLines).toBeDefined();
-    
+
     // Test function types
     expect(typeof index.getYamlOptions).toBe("function");
     expect(typeof index.addEmptyLines).toBe("function");
@@ -66,28 +66,34 @@ describe("Index exports", () => {
     const testData = {
       version: "3",
       vars: { test_var: "value", another_var: "another_value" },
-      tasks: { test_task: { cmds: ["echo test"] }, another_task: { cmds: ["echo another"] } },
+      tasks: {
+        test_task: { cmds: ["echo test"] },
+        another_task: { cmds: ["echo another"] },
+      },
     };
 
     // Test sortTaskfileKeys
     expect(() => index.sortTaskfileKeys(testData)).not.toThrow();
-    
+
     // Test uppercaseVariableNames with vars object
     const testVars = { test_var: "value", another_var: "another_value" };
     expect(() => index.uppercaseVariableNames(testVars)).not.toThrow();
-    
+
     // Test kebabCaseTaskNames with tasks object
-    const testTasks = { test_task: { cmds: ["echo test"] }, another_task: { cmds: ["echo another"] } };
+    const testTasks = {
+      test_task: { cmds: ["echo test"] },
+      another_task: { cmds: ["echo another"] },
+    };
     expect(() => index.kebabCaseTaskNames(testTasks)).not.toThrow();
-    
+
     // Test removeTemplateWhitespace with string
     const testString = "echo {{ .VAR }}";
     expect(() => index.removeTemplateWhitespace(testString)).not.toThrow();
-    
+
     // Test processCommands with array
     const testCommands = ["echo {{ .VAR }}", "echo test"];
     expect(() => index.processCommands(testCommands)).not.toThrow();
-    
+
     // Test formatTaskfile (already tested above but ensuring coverage)
     expect(() => index.formatTaskfile(testData)).not.toThrow();
   });
@@ -97,9 +103,10 @@ describe("Index exports", () => {
     const yamlOptions = index.getYamlOptions();
     expect(yamlOptions).toBeDefined();
     expect(typeof yamlOptions).toBe("object");
-    
+
     // Test addEmptyLines
-    const testYaml = "version: '3'\ntasks:\n  test:\n    cmds:\n      - echo test";
+    const testYaml =
+      "version: '3'\ntasks:\n  test:\n    cmds:\n      - echo test";
     const result = index.addEmptyLines(testYaml);
     expect(typeof result).toBe("string");
     expect(result).toContain("version:");
@@ -107,12 +114,12 @@ describe("Index exports", () => {
 
   test("should set CommonJS module.exports properties correctly", () => {
     // In this test environment, we're testing the imported module
-    // The CommonJS assignment is executed during import, so we test 
+    // The CommonJS assignment is executed during import, so we test
     // that the module can be used in a CommonJS context
-    
+
     // Test that the main plugin export is accessible
     expect(index.default).toBeDefined();
-    
+
     // Test that all function exports are accessible
     expect(index.sortTaskfileKeys).toBeDefined();
     expect(index.uppercaseVariableNames).toBeDefined();
@@ -122,7 +129,7 @@ describe("Index exports", () => {
     expect(index.formatTaskfile).toBeDefined();
     expect(index.getYamlOptions).toBeDefined();
     expect(index.addEmptyLines).toBeDefined();
-    
+
     // Test that they are actual functions
     expect(typeof index.sortTaskfileKeys).toBe("function");
     expect(typeof index.uppercaseVariableNames).toBe("function");

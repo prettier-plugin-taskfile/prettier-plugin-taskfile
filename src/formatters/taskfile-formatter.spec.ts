@@ -259,8 +259,12 @@ describe("formatTaskfile", () => {
     );
 
     expect(result.tasks_special?.["task-without-cmds"]).toBeDefined();
-    expect(result.tasks_special?.["task-without-cmds"]?.desc).toBe("No commands");
-    expect(result.tasks_special?.["task-without-cmds"]?.deps).toEqual(["other-task"]);
+    expect(result.tasks_special?.["task-without-cmds"]?.desc).toBe(
+      "No commands",
+    );
+    expect(result.tasks_special?.["task-without-cmds"]?.deps).toEqual([
+      "other-task",
+    ]);
     expect(result.tasks_special?.["task-without-cmds"]?.cmds).toBeUndefined();
   });
 });

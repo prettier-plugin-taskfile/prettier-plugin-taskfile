@@ -102,7 +102,7 @@ describe("Prettier Plugin", () => {
 
   test("should handle parser error correctly", () => {
     const parser = plugin.parsers!["taskfile-yaml"];
-    
+
     // Mock yaml.parse to throw an Error
     const originalParse = require("yaml").parse;
     const mockParse = jest.fn().mockImplementation(() => {
@@ -120,20 +120,20 @@ describe("Prettier Plugin", () => {
 
   test("should handle parser error with non-Error object", () => {
     const parser = plugin.parsers!["taskfile-yaml"];
-    
+
     // Mock console.log and console.error to avoid output during tests
     const originalConsoleLog = console.log;
     const originalConsoleError = console.error;
     const originalYamlParse = require("yaml").parse;
-    
+
     console.log = jest.fn();
     console.error = jest.fn();
-    
+
     // Mock yaml.parse to throw a non-Error object
     require("yaml").parse = jest.fn(() => {
       throw "String error"; // Non-Error object
     });
-    
+
     try {
       expect(() => {
         parser.parse("some yaml", { filepath: "test.yml" } as any);
@@ -148,7 +148,7 @@ describe("Prettier Plugin", () => {
 
   test("should handle printer error correctly", () => {
     const printer = plugin.printers!["taskfile-yaml"];
-    
+
     // Create a mock path that throws an error
     const mockPath = {
       getValue: () => {
@@ -163,7 +163,7 @@ describe("Prettier Plugin", () => {
 
   test("should handle printer error with non-Error object", () => {
     const printer = plugin.printers!["taskfile-yaml"];
-    
+
     // Create a mock path that throws a non-Error object
     const mockPath = {
       getValue: () => {
@@ -178,12 +178,12 @@ describe("Prettier Plugin", () => {
 
   test("should have locStart and locEnd functions", () => {
     const parser = plugin.parsers!["taskfile-yaml"];
-    
+
     expect(parser.locStart).toBeDefined();
     expect(parser.locEnd).toBeDefined();
     expect(typeof parser.locStart).toBe("function");
     expect(typeof parser.locEnd).toBe("function");
-    
+
     // Test that they return 0 (with dummy node argument)
     const dummyNode = {};
     expect(parser.locStart(dummyNode)).toBe(0);

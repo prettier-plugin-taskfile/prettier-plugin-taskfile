@@ -26,11 +26,6 @@ export const DEFAULT_YAML_OPTIONS = {
 } as const;
 
 /**
- * Supported file extensions for Taskfiles
- */
-export const TASKFILE_EXTENSIONS = [".yml", ".yaml"] as const;
-
-/**
  * Supported filenames for Taskfiles
  */
 export const TASKFILE_FILENAMES = [

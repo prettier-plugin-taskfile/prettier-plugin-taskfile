@@ -1,6 +1,6 @@
 import { Plugin } from "prettier";
 import * as yaml from "yaml";
-import { TASKFILE_EXTENSIONS, TASKFILE_FILENAMES } from "./constants";
+import { TASKFILE_FILENAMES } from "./constants";
 import { formatTaskfile } from "./formatters";
 import { getYamlOptions, addEmptyLines } from "./utils";
 
@@ -11,7 +11,7 @@ export const plugin: Plugin = {
   languages: [
     {
       name: "TaskfileYAML",
-      extensions: [...TASKFILE_EXTENSIONS],
+      extensions: [], // Empty array to avoid matching all .yml/.yaml files
       parsers: ["taskfile-yaml"],
       filenames: [...TASKFILE_FILENAMES],
     },

@@ -78,13 +78,13 @@ vars:
   PROJECT: myproject
   lowercase_var: should be uppercase
   another_var: value
-version: '3'
+version: "3"
 ```
 
 **After (formatted):**
 
 ```yaml
-version: '3'
+version: "3"
 
 includes:
   - ./common.yml
