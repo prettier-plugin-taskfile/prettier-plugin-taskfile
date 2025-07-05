@@ -20,8 +20,6 @@ export const plugin: Plugin = {
     "taskfile-yaml": {
       parse: (text: string, options: any) => {
         try {
-          console.log("Prettier plugin parse called for:", options.filepath);
-
           // Parse the YAML
           const obj = yaml.parse(text);
           return obj;

@@ -20,7 +20,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
-  "keywords": [],
+  "keywords": ["prettier", "plugin", "taskfile", "formatter"],
   "author": "",
   "license": "MIT",
   "devDependencies": {
