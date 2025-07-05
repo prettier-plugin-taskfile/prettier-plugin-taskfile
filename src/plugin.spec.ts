@@ -11,7 +11,7 @@ describe("Prettier Plugin", () => {
     expect(plugin.languages).toEqual([
       {
         name: "TaskfileYAML",
-        extensions: [".yml", ".yaml"],
+        extensions: [],
         filenames: [
           "Taskfile.yml",
           "Taskfile.yaml",
