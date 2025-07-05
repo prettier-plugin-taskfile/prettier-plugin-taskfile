@@ -1,7 +1,8 @@
 {
   "name": "prettier-plugin-taskfile",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A Prettier plugin for formatting Taskfile YAML files",
+  "homepage": "https://github.com/prettier-plugin-taskfile/prettier-plugin-taskfile",
   "type": "commonjs",
   "main": "./dist/index.js",
   "files": [
@@ -31,6 +32,7 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "jest": "^30.0.4",
+    "prettier-plugin-taskfile": "^1.0.0",
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
