@@ -35,10 +35,10 @@ yarn add --dev prettier prettier-plugin-taskfile
 
 ```bash
 # Format a single Taskfile
-npx prettier --write Taskfile.yml
+npx prettier --write Taskfile.yml --plugin=prettier-plugin-taskfile
 
 # Format all Taskfiles in your project
-npx prettier --write "**/*Taskfile*.{yml,yaml}"
+npx prettier --write "**/*Taskfile*.{yml,yaml}" --plugin=prettier-plugin-taskfile
 ```
 
 ### Configuration
