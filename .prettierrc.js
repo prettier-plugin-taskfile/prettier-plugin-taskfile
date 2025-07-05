@@ -3,7 +3,7 @@
  * @type {import("prettier").Config}
  */
 const config = {
-  plugins: ["./dist/index.js"],
+  plugins: ["prettier-plugin-taskfile"],
 };
 
 module.exports = config;
