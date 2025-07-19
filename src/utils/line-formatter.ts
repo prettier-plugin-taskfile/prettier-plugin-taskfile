@@ -63,10 +63,42 @@ export function addEmptyLines(yamlStr: string): string {
         inTasksSection &&
         prevTrimmed !== "" &&
         !prevTrimmed.match(/^(tasks|tasks_with_templates):$/) &&
-        !prevTrimmed.startsWith("#") && // Don't add empty line after comments
+        !prevTrimmed.startsWith("#") && // Don't add empty line if previous line is a comment
         !result[result.length - 1]?.match(/^\s*$/)
       ) {
         result.push("");
+      }
+    }
+
+    // Add empty line before comments that follow task content (cmds, desc, etc.)
+    if (i > 0 && !inMultiLineString) {
+      const isComment = trimmedLine.startsWith("#") && line.match(/^\s{2}#/);
+      const prevLine = lines[i - 1];
+      const prevTrimmed = prevLine.trim();
+
+      if (isComment) {
+        // Check if we're in a tasks section
+        let inTasksSection = false;
+        for (let j = i - 1; j >= 0; j--) {
+          const checkLine = lines[j].trim();
+          if (checkLine.match(/^(tasks|tasks_with_templates):$/)) {
+            inTasksSection = true;
+            break;
+          } else if (checkLine.match(/^(version|includes|vars|env):$/)) {
+            break;
+          }
+        }
+
+        // Add empty line before comment if it follows task content
+        if (
+          inTasksSection &&
+          prevTrimmed !== "" &&
+          !prevTrimmed.match(/^(tasks|tasks_with_templates):$/) &&
+          !prevTrimmed.startsWith("#") &&
+          !result[result.length - 1]?.match(/^\s*$/)
+        ) {
+          result.push("");
+        }
       }
     }
 
