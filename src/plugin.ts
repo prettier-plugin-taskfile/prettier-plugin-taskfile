@@ -1,7 +1,7 @@
 import { Plugin } from "prettier";
 import * as yaml from "yaml";
 import { TASKFILE_FILENAMES } from "./constants";
-import { formatTaskfile } from "./formatters";
+import { formatTaskfileDocument } from "./formatters";
 import { getYamlOptions, addEmptyLines } from "./utils";
 
 /**
@@ -20,9 +20,11 @@ export const plugin: Plugin = {
     "taskfile-yaml": {
       parse: (text: string, options: any) => {
         try {
-          // Parse the YAML
-          const obj = yaml.parse(text);
-          return obj;
+          // Parse the YAML as a Document to preserve comments
+          const doc = yaml.parseDocument(text);
+
+          // Return the document instead of the parsed object
+          return doc;
         } catch (error) {
           console.error("Failed to parse YAML:", error);
           throw new Error(
@@ -39,14 +41,19 @@ export const plugin: Plugin = {
     "taskfile-yaml": {
       print: (path: any) => {
         try {
-          const obj = path.getValue();
+          const doc = path.getValue();
 
-          // Format the Taskfile
-          const formattedObj = formatTaskfile(obj);
+          // Format the document while preserving comments
+          formatTaskfileDocument(doc);
 
-          // Convert to YAML
+          // Get YAML options
           const yamlOptions = getYamlOptions();
-          let yamlStr = yaml.stringify(formattedObj, yamlOptions);
+
+          // Apply formatting options to the document
+          Object.assign(doc.options, yamlOptions);
+
+          // Convert to YAML string
+          let yamlStr = doc.toString();
 
           // Add empty lines
           yamlStr = addEmptyLines(yamlStr);

@@ -272,4 +272,24 @@ tasks:
     expect(result).toContain("desc: description\n\n  task2:");
     expect(result).toContain("version: 3\n\ntasks:");
   });
+  test("should not add empty lines between line comments and task definitions", () => {
+    const input = `tasks:
+  # Build task
+  build:
+    cmds:
+      - echo "Building..."
+  # Test task
+  test:
+    cmds:
+      - echo "Testing..."`;
+
+    const result = addEmptyLines(input);
+
+    // Should not add empty line between comment and task definition
+    expect(result).toContain("# Build task\n  build:");
+    expect(result).toContain("# Test task\n  test:");
+
+    // Should add empty line between tasks (but not before comments)
+    expect(result).toContain('echo "Building..."\n  # Test task');
+  });
 });

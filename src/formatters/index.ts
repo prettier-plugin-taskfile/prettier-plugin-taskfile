@@ -6,3 +6,4 @@ export {
   processCommands,
 } from "./template-formatter";
 export { formatTaskfile } from "./taskfile-formatter";
+export { formatTaskfileDocument } from "./document-formatter";

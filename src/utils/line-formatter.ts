@@ -63,6 +63,7 @@ export function addEmptyLines(yamlStr: string): string {
         inTasksSection &&
         prevTrimmed !== "" &&
         !prevTrimmed.match(/^(tasks|tasks_with_templates):$/) &&
+        !prevTrimmed.startsWith("#") && // Don't add empty line after comments
         !result[result.length - 1]?.match(/^\s*$/)
       ) {
         result.push("");
