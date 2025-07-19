@@ -63,7 +63,7 @@ export interface Taskfile {
   vars?: TaskfileVars;
   env?: TaskfileEnv;
   tasks?: TaskfileTasks;
-  [key: string]: unknown; // For custom sections like tasks_with_templates
+  [key: string]: any; // For custom sections like tasks_with_templates
 }
 
 export interface YamlStringifyOptions {
