@@ -18,7 +18,7 @@ export const plugin: Plugin = {
   ],
   parsers: {
     "taskfile-yaml": {
-      parse: (text: string, options: any) => {
+      parse: (text: string) => {
         try {
           // Parse the YAML as a Document to preserve comments
           const doc = yaml.parseDocument(text);
@@ -39,9 +39,9 @@ export const plugin: Plugin = {
   },
   printers: {
     "taskfile-yaml": {
-      print: (path: any) => {
+      print: (path) => {
         try {
-          const doc = path.getValue();
+          const doc = path.getNode();
 
           // Format the document while preserving comments
           formatTaskfileDocument(doc);

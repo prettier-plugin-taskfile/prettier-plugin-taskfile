@@ -16,7 +16,7 @@ export interface TaskCommand {
   silent?: boolean;
   ignore_error?: boolean;
   defer?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Task {
@@ -25,7 +25,7 @@ export interface Task {
   aliases?: string[];
   cmds?: (string | TaskCommand)[];
   deps?: string[];
-  preconditions?: any[];
+  preconditions?: unknown[];
   vars?: TaskfileVars;
   env?: TaskfileEnv;
   dir?: string;
@@ -37,7 +37,7 @@ export interface Task {
   silent?: boolean;
   interactive?: boolean;
   internal?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface TaskfileTasks {
@@ -63,7 +63,7 @@ export interface Taskfile {
   vars?: TaskfileVars;
   env?: TaskfileEnv;
   tasks?: TaskfileTasks;
-  [key: string]: any; // For custom sections like tasks_with_templates
+  [key: string]: unknown; // For custom sections like tasks_with_templates
 }
 
 export interface YamlStringifyOptions {

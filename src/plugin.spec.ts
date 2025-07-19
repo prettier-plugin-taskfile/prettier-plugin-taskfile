@@ -77,7 +77,7 @@ describe("Prettier Plugin", () => {
     const doc = parser.parse(yaml, {} as any);
 
     const mockPath = {
-      getValue: () => doc,
+      getNode: () => doc,
     };
 
     const result = printer.print(mockPath as any, {} as any, {} as any);
@@ -98,7 +98,7 @@ describe("Prettier Plugin", () => {
     const doc = parser.parse(yaml, {} as any);
 
     const mockPath = {
-      getValue: () => doc,
+      getNode: () => doc,
     };
 
     const result = printer.print(mockPath as any, {} as any, {} as any);
@@ -158,7 +158,7 @@ describe("Prettier Plugin", () => {
 
     // Create a mock path that throws an error
     const mockPath = {
-      getValue: () => {
+      getNode: () => {
         throw new Error("Test error");
       },
     };
@@ -173,7 +173,7 @@ describe("Prettier Plugin", () => {
 
     // Create a mock path that throws a non-Error object
     const mockPath = {
-      getValue: () => {
+      getNode: () => {
         throw "String error"; // Non-Error object
       },
     };
@@ -216,7 +216,7 @@ tasks:
 
     const doc = parser.parse(yamlWithComments, {} as any);
     const mockPath = {
-      getValue: () => doc,
+      getNode: () => doc,
     };
 
     const result = printer.print(mockPath as any, {} as any, {} as any);

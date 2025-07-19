@@ -43,14 +43,14 @@ export function formatTaskfileDocument(doc: yaml.Document): yaml.Document {
  * Sort map keys according to Taskfile priority
  */
 function sortMapKeys(map: yaml.YAMLMap): void {
-  const priorityOrder = [...TASKFILE_KEY_PRIORITY];
+  const priorityOrder: string[] = [...TASKFILE_KEY_PRIORITY];
 
   map.items.sort((a, b) => {
     const keyA = yaml.isScalar(a.key) ? (a.key.value as string) : "";
     const keyB = yaml.isScalar(b.key) ? (b.key.value as string) : "";
 
-    const indexA = priorityOrder.indexOf(keyA as any);
-    const indexB = priorityOrder.indexOf(keyB as any);
+    const indexA = priorityOrder.indexOf(keyA);
+    const indexB = priorityOrder.indexOf(keyB);
 
     // Items in priority list come first
     if (indexA !== -1 && indexB !== -1) {
