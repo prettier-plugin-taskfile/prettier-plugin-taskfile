@@ -100,12 +100,24 @@ function validateKeyOrder(map: yaml.YAMLMap): void {
     // Check if key is in priority order
     if (priorityIndex !== -1) {
       if (priorityIndex < lastPriorityIndex) {
-        throw new Error(
+        const error = new Error(
           `Key "${keyName}" appears after "${lastKeyName}", but should come before it.\n` +
           `Current order: "version", "includes", "vars", "env", "tasks"\n` +
           `Your order: ... "${lastKeyName}", "${keyName}" ...\n` +
           `Please reorder your keys according to the Taskfile style guide: ${priorityOrder.join(", ")}`,
         );
+        
+        // Store location information if available
+        if (item.key.range) {
+          (error as any).loc = {
+            start: { line: 0, column: item.key.range[0] },
+            end: { line: 0, column: item.key.range[1] },
+          };
+          (error as any).start = item.key.range[0];
+          (error as any).end = item.key.range[1];
+        }
+        
+        throw error;
       }
       lastPriorityIndex = priorityIndex;
       lastKeyName = keyName;

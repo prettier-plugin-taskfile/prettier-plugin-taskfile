@@ -37,8 +37,28 @@ export const plugin: Plugin = {
         }
       },
       astFormat: "taskfile-yaml",
-      locStart: () => 0,
-      locEnd: () => 0,
+      locStart: (node: any) => {
+        // Use stored start position if available
+        if (node && node.start !== undefined) {
+          return node.start;
+        }
+        // Fall back to range if available
+        if (node && node.range && Array.isArray(node.range)) {
+          return node.range[0];
+        }
+        return 0;
+      },
+      locEnd: (node: any) => {
+        // Use stored end position if available
+        if (node && node.end !== undefined) {
+          return node.end;
+        }
+        // Fall back to range if available
+        if (node && node.range && Array.isArray(node.range)) {
+          return node.range[1];
+        }
+        return 0;
+      },
     },
   },
   printers: {
@@ -68,6 +88,16 @@ export const plugin: Plugin = {
           return yamlStr;
         } catch (error) {
           console.error("Failed to format Taskfile:", error);
+          
+          // If the error has location information, re-throw preserving it
+          if (error instanceof Error && (error as any).start !== undefined && (error as any).end !== undefined) {
+            (error as any).loc = {
+              start: { line: 0, column: (error as any).start },
+              end: { line: 0, column: (error as any).end },
+            };
+            throw error;
+          }
+          
           throw new Error(
             `Formatting failed: ${error instanceof Error ? error.message : "Unknown error"}`,
           );

@@ -269,4 +269,42 @@ version: "3"`;
     expect(versionIndex).toBeLessThan(varsIndex);
     expect(varsIndex).toBeLessThan(tasksIndex);
   });
+
+  test("should include location information in errors", () => {
+    const yamlWithComments = `# This file has comments
+tasks:
+  build:
+    cmds:
+      - echo "test"
+
+# Variables
+vars:
+  PROJECT: test
+
+# Version (wrong position)
+version: "3"`;
+
+    const doc = yaml.parseDocument(yamlWithComments);
+
+    try {
+      formatTaskfileDocument(doc, yamlWithComments);
+      fail("Should have thrown an error");
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+      // Check that error has location information
+      const err = error as any;
+      // The error should have start and end position information from the key's range
+      expect(typeof err.start).toBe("number");
+      expect(typeof err.end).toBe("number");
+      expect(err.start).toBeGreaterThanOrEqual(0);
+      expect(err.end).toBeGreaterThan(err.start);
+      expect(err.loc).toBeDefined();
+      expect(err.loc.start).toBeDefined();
+      expect(err.loc.end).toBeDefined();
+      expect(err.loc.start.line).toBe(0);
+      expect(typeof err.loc.start.column).toBe("number");
+      expect(typeof err.loc.end.column).toBe("number");
+    }
+  });
 });
+
