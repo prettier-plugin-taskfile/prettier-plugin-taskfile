@@ -20,7 +20,7 @@ tasks:
       - echo "Building {{   .PROJECT_NAME   }}" # Command comment`;
 
     const doc = yaml.parseDocument(yamlWithComments);
-    const result = formatTaskfileDocument(doc);
+    const result = formatTaskfileDocument(doc, yamlWithComments);
 
     const formattedYaml = result.toString();
 
@@ -49,7 +49,7 @@ vars:
 version: "3"`;
 
     const doc = yaml.parseDocument(yamlText);
-    const result = formatTaskfileDocument(doc);
+    const result = formatTaskfileDocument(doc, yamlText);
     const formattedYaml = result.toString();
 
     // Check that keys are in the correct order
@@ -64,12 +64,12 @@ version: "3"`;
   test("should handle empty or invalid documents", () => {
     // Test with empty document
     const emptyDoc = yaml.parseDocument("{}");
-    const result1 = formatTaskfileDocument(emptyDoc);
+    const result1 = formatTaskfileDocument(emptyDoc, "{}");
     expect(result1.toString().trim()).toBe("{}");
 
     // Test with non-map document
     const scalarDoc = yaml.parseDocument('"just a string"');
-    const result2 = formatTaskfileDocument(scalarDoc);
+    const result2 = formatTaskfileDocument(scalarDoc, '"just a string"');
     expect(result2.toString().trim()).toBe('"just a string"');
   });
 
@@ -80,7 +80,7 @@ version: "3"`;
   ALREADY_UPPER: value3`;
 
     const doc = yaml.parseDocument(yamlText);
-    const result = formatTaskfileDocument(doc);
+    const result = formatTaskfileDocument(doc, yamlText);
     const formattedYaml = result.toString();
 
     expect(formattedYaml).toContain("LOWERCASE_VAR: value1");
@@ -101,7 +101,7 @@ version: "3"`;
       - echo "already"`;
 
     const doc = yaml.parseDocument(yamlText);
-    const result = formatTaskfileDocument(doc);
+    const result = formatTaskfileDocument(doc, yamlText);
     const formattedYaml = result.toString();
 
     expect(formattedYaml).toContain("build-project:");
@@ -118,7 +118,7 @@ version: "3"`;
       - echo "{{ .WITH_SPACES }}"`;
 
     const doc = yaml.parseDocument(yamlText);
-    const result = formatTaskfileDocument(doc);
+    const result = formatTaskfileDocument(doc, yamlText);
     const formattedYaml = result.toString();
 
     expect(formattedYaml).toContain('echo "{{.PROJECT_NAME}}"');
@@ -149,7 +149,7 @@ tasks:
       local_var: value # Task-specific variable`;
 
     const doc = yaml.parseDocument(yamlWithComments);
-    const result = formatTaskfileDocument(doc);
+    const result = formatTaskfileDocument(doc, yamlWithComments);
     const formattedYaml = result.toString();
 
     // Verify comments are preserved
@@ -169,5 +169,104 @@ tasks:
     expect(formattedYaml).toContain("build-app:");
     expect(formattedYaml).toContain("clean_build"); // deps is not formatted by current implementation
     expect(formattedYaml).toContain("{{.PROJECT_NAME}}");
+  });
+
+  test("should throw error when keys are out of order with comments", () => {
+    const yamlWithComments = `# Variables section
+vars:
+  PROJECT: myproject
+
+# Version comment
+version: "3"
+
+# Tasks section
+tasks:
+  build:
+    cmds:
+      - echo "test"`;
+
+    const doc = yaml.parseDocument(yamlWithComments);
+
+    expect(() => {
+      formatTaskfileDocument(doc, yamlWithComments);
+    }).toThrow(
+      /Key "version" appears after "vars", but should come before it\./,
+    );
+  });
+
+  test("should validate key order when comments are present", () => {
+    const yamlWithComments = `# Version comment
+version: "3"
+
+# Variables comment
+vars:
+  PROJECT: myproject
+
+# Tasks comment
+tasks:
+  build:
+    cmds:
+      - echo "test"`;
+
+    const doc = yaml.parseDocument(yamlWithComments);
+
+    // Should not throw error because keys are in correct order
+    expect(() => {
+      formatTaskfileDocument(doc, yamlWithComments);
+    }).not.toThrow();
+
+    const result = formatTaskfileDocument(doc, yamlWithComments);
+    const formattedYaml = result.toString();
+
+    // Verify comments are preserved
+    expect(formattedYaml).toContain("# Version comment");
+    expect(formattedYaml).toContain("# Variables comment");
+    expect(formattedYaml).toContain("# Tasks comment");
+
+    // Formatting should still be applied
+    expect(formattedYaml).toContain("PROJECT: myproject");
+    expect(formattedYaml).toContain("build:");
+  });
+
+  test("should not sort when comments are present at root level", () => {
+    const yamlWithComments = `# Top comment
+version: "3"
+# Middle comment
+tasks:
+  build:
+    cmds:
+      - echo "test"
+# Bottom comment
+vars:
+  PROJECT: myproject`;
+
+    const doc = yaml.parseDocument(yamlWithComments);
+
+    // This should throw because vars is after tasks with comments present
+    expect(() => {
+      formatTaskfileDocument(doc, yamlWithComments);
+    }).toThrow(/appears after "tasks", but should come before it/);
+  });
+
+  test("should sort without comments when key order is wrong but no comments exist", () => {
+    const yamlText = `tasks:
+  build:
+    cmds:
+      - echo "test"
+vars:
+  PROJECT: myproject
+version: "3"`;
+
+    const doc = yaml.parseDocument(yamlText);
+    const result = formatTaskfileDocument(doc, yamlText);
+    const formattedYaml = result.toString();
+
+    // Check that keys are sorted correctly
+    const versionIndex = formattedYaml.indexOf("version:");
+    const varsIndex = formattedYaml.indexOf("vars:");
+    const tasksIndex = formattedYaml.indexOf("tasks:");
+
+    expect(versionIndex).toBeLessThan(varsIndex);
+    expect(varsIndex).toBeLessThan(tasksIndex);
   });
 });

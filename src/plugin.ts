@@ -23,6 +23,10 @@ export const plugin: Plugin = {
           // Parse the YAML as a Document to preserve comments
           const doc = yaml.parseDocument(text);
 
+          // Store the source text in the document for later use
+          // This allows us to check for comments during formatting
+          (doc as any)._sourceText = text;
+
           // Return the document instead of the parsed object
           return doc;
         } catch (error) {
@@ -43,8 +47,11 @@ export const plugin: Plugin = {
         try {
           const doc = path.getNode();
 
+          // Get the source text stored during parsing
+          const sourceText = (doc as any)._sourceText;
+
           // Format the document while preserving comments
-          formatTaskfileDocument(doc);
+          formatTaskfileDocument(doc, sourceText);
 
           // Get YAML options
           const yamlOptions = getYamlOptions();
