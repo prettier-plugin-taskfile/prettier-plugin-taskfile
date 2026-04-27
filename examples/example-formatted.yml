@@ -12,6 +12,7 @@ env:
   NODE_ENV: development
 
 tasks:
+
   # tasks section
   build:
     cmds:
@@ -29,6 +30,7 @@ tasks:
       - echo "Docker stuff"
 
 tasks_with_templates:
+
   # greet task
   greet:
     cmds:

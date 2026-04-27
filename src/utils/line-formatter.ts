@@ -1,6 +1,35 @@
 import { REGEX_PATTERNS } from "../constants";
 
 /**
+ * Looks backward in `result` for a contiguous block of comment lines at `commentIndent`
+ * and inserts an empty line before that block (if not already present).
+ * If no leading comment block exists, inserts just before the last pushed line.
+ */
+function insertEmptyLineBeforeCommentBlock(
+  result: string[],
+  commentIndent: number,
+): void {
+  // Find the start of the preceding comment block
+  let insertIndex = result.length; // position to insert empty line (before this index)
+
+  for (let k = result.length - 1; k >= 0; k--) {
+    const t = result[k].trim();
+    const ind = result[k].length - result[k].trimStart().length;
+
+    if (t.startsWith("#") && ind === commentIndent) {
+      insertIndex = k;
+    } else {
+      break;
+    }
+  }
+
+  // Only insert if the line just before insertIndex is not already empty
+  if (insertIndex > 0 && result[insertIndex - 1].trim() !== "") {
+    result.splice(insertIndex, 0, "");
+  }
+}
+
+/**
  * Adds empty lines between main sections and tasks according to the style guide.
  *
  * @param yamlStr The YAML string
@@ -30,12 +59,16 @@ export function addEmptyLines(yamlStr: string): string {
     }
 
     // Add empty line before main sections (except first line)
+    // If the section is preceded by a comment block, put the empty line before the block
     if (i > 0 && !inMultiLineString) {
       const isMainSection = trimmedLine.match(REGEX_PATTERNS.MAIN_SECTION);
-      const prevLine = lines[i - 1];
 
-      if (isMainSection && prevLine.trim() !== "") {
-        result.push("");
+      if (
+        isMainSection &&
+        result.length > 0 &&
+        result[result.length - 1].trim() !== ""
+      ) {
+        insertEmptyLineBeforeCommentBlock(result, 0);
       }
     }
 
@@ -43,8 +76,6 @@ export function addEmptyLines(yamlStr: string): string {
     // But not for variables in vars/env sections
     if (i > 0 && !inMultiLineString) {
       const isTaskDefinition = line.match(REGEX_PATTERNS.TASK_DEFINITION);
-      const prevLine = lines[i - 1];
-      const prevTrimmed = prevLine.trim();
 
       // Check if we're in a tasks or tasks_with_templates section
       let inTasksSection = false;
@@ -61,43 +92,21 @@ export function addEmptyLines(yamlStr: string): string {
       if (
         isTaskDefinition &&
         inTasksSection &&
-        prevTrimmed !== "" &&
-        !prevTrimmed.match(/^(tasks|tasks_with_templates):$/) &&
-        !prevTrimmed.startsWith("#") && // Don't add empty line if previous line is a comment
-        !result[result.length - 1]?.match(/^\s*$/)
+        result.length > 0 &&
+        result[result.length - 1].trim() !== "" &&
+        !trimmedLine.match(/^(tasks|tasks_with_templates):$/)
       ) {
-        result.push("");
-      }
-    }
-
-    // Add empty line before comments that follow task content (cmds, desc, etc.)
-    if (i > 0 && !inMultiLineString) {
-      const isComment = trimmedLine.startsWith("#") && line.match(/^\s{2}#/);
-      const prevLine = lines[i - 1];
-      const prevTrimmed = prevLine.trim();
-
-      if (isComment) {
-        // Check if we're in a tasks section
-        let inTasksSection = false;
-        for (let j = i - 1; j >= 0; j--) {
-          const checkLine = lines[j].trim();
-          if (checkLine.match(/^(tasks|tasks_with_templates):$/)) {
-            inTasksSection = true;
-            break;
-          } else if (checkLine.match(/^(version|includes|vars|env):$/)) {
+        // Don't add empty line for the very first item under a tasks header
+        // Find last non-empty line in result to check
+        let lastNonEmpty = "";
+        for (let k = result.length - 1; k >= 0; k--) {
+          if (result[k].trim() !== "") {
+            lastNonEmpty = result[k].trim();
             break;
           }
         }
-
-        // Add empty line before comment if it follows task content
-        if (
-          inTasksSection &&
-          prevTrimmed !== "" &&
-          !prevTrimmed.match(/^(tasks|tasks_with_templates):$/) &&
-          !prevTrimmed.startsWith("#") &&
-          !result[result.length - 1]?.match(/^\s*$/)
-        ) {
-          result.push("");
+        if (!lastNonEmpty.match(/^(tasks|tasks_with_templates):$/)) {
+          insertEmptyLineBeforeCommentBlock(result, 2);
         }
       }
     }

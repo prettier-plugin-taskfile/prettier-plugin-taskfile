@@ -23,7 +23,7 @@ export function formatTaskfileDocument(
   const rootMap = doc.contents;
 
   // Check if there are comments at the root level
-  // We detect comments by checking the source text for lines starting with # 
+  // We detect comments by checking the source text for lines starting with #
   // that appear before any key: value pairs (at the root level, indentation = 0)
   const hasRootComments = sourceText
     ? detectRootLevelComments(sourceText)
@@ -73,10 +73,6 @@ function detectRootLevelComments(source: string): boolean {
     if (trimmed.startsWith("#") && !line.startsWith(" ")) {
       return true;
     }
-    // Stop checking once we encounter a non-comment, non-empty line at root level
-    if (trimmed && !trimmed.startsWith("#")) {
-      break;
-    }
   }
 
   return false;
@@ -102,11 +98,11 @@ function validateKeyOrder(map: yaml.YAMLMap): void {
       if (priorityIndex < lastPriorityIndex) {
         const error = new Error(
           `Key "${keyName}" appears after "${lastKeyName}", but should come before it.\n` +
-          `Current order: "version", "includes", "vars", "env", "tasks"\n` +
-          `Your order: ... "${lastKeyName}", "${keyName}" ...\n` +
-          `Please reorder your keys according to the Taskfile style guide: ${priorityOrder.join(", ")}`,
+            `Current order: "version", "includes", "vars", "env", "tasks"\n` +
+            `Your order: ... "${lastKeyName}", "${keyName}" ...\n` +
+            `Please reorder your keys according to the Taskfile style guide: ${priorityOrder.join(", ")}`,
         );
-        
+
         // Store location information if available
         if (item.key.range) {
           (error as any).loc = {
@@ -116,7 +112,7 @@ function validateKeyOrder(map: yaml.YAMLMap): void {
           (error as any).start = item.key.range[0];
           (error as any).end = item.key.range[1];
         }
-        
+
         throw error;
       }
       lastPriorityIndex = priorityIndex;

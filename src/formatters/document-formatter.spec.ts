@@ -306,5 +306,55 @@ version: "3"`;
       expect(typeof err.loc.end.column).toBe("number");
     }
   });
-});
 
+  test("should auto-sort when only inline comments are present (no root-level comments)", () => {
+    // Inline comments (key: value # comment) do not affect sort detection,
+    // so the formatter should sort automatically without throwing an error.
+    const yamlWithInlineOnly = `vars:
+  PROJECT: test # inline comment
+
+version: "3" # inline comment
+
+tasks:
+  build:
+    cmds:
+      - echo "test" # inline comment`;
+
+    const doc = yaml.parseDocument(yamlWithInlineOnly);
+
+    // Should NOT throw - inline comments don't block auto-sort
+    expect(() => {
+      formatTaskfileDocument(doc, yamlWithInlineOnly);
+    }).not.toThrow();
+
+    const result = formatTaskfileDocument(doc, yamlWithInlineOnly);
+    const formattedYaml = result.toString();
+
+    // Keys should be auto-sorted into correct order
+    const versionIndex = formattedYaml.indexOf("version:");
+    const varsIndex = formattedYaml.indexOf("vars:");
+    const tasksIndex = formattedYaml.indexOf("tasks:");
+    expect(versionIndex).toBeLessThan(varsIndex);
+    expect(varsIndex).toBeLessThan(tasksIndex);
+
+    // Inline comments should be preserved
+    expect(formattedYaml).toContain("# inline comment");
+  });
+
+  test("should throw error when root-level comment and inline comment are mixed and keys are out of order", () => {
+    // Even if some comments are inline, a root-level comment disables auto-sort
+    const yamlMixed = `# Root comment
+vars:
+  PROJECT: test # inline comment
+
+version: "3" # inline comment`;
+
+    const doc = yaml.parseDocument(yamlMixed);
+
+    expect(() => {
+      formatTaskfileDocument(doc, yamlMixed);
+    }).toThrow(
+      /Key "version" appears after "vars", but should come before it\./,
+    );
+  });
+});

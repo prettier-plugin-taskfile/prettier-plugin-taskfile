@@ -191,10 +191,25 @@ describe("Prettier Plugin", () => {
     expect(typeof parser.locStart).toBe("function");
     expect(typeof parser.locEnd).toBe("function");
 
-    // Test that they return 0 (with dummy node argument)
+    // Fallback: returns 0 for empty node
     const dummyNode = {};
     expect(parser.locStart(dummyNode)).toBe(0);
     expect(parser.locEnd(dummyNode)).toBe(0);
+
+    // Returns range[0] / range[1] when node has range array
+    const nodeWithRange = { range: [10, 20] };
+    expect(parser.locStart(nodeWithRange)).toBe(10);
+    expect(parser.locEnd(nodeWithRange)).toBe(20);
+
+    // Returns start / end when node has explicit position properties
+    const nodeWithStartEnd = { start: 5, end: 15 };
+    expect(parser.locStart(nodeWithStartEnd)).toBe(5);
+    expect(parser.locEnd(nodeWithStartEnd)).toBe(15);
+
+    // start/end takes precedence over range when both exist
+    const nodeWithBoth = { start: 3, end: 7, range: [10, 20] };
+    expect(parser.locStart(nodeWithBoth)).toBe(3);
+    expect(parser.locEnd(nodeWithBoth)).toBe(7);
   });
 
   test("should preserve comments during formatting", () => {

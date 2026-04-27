@@ -88,16 +88,20 @@ export const plugin: Plugin = {
           return yamlStr;
         } catch (error) {
           console.error("Failed to format Taskfile:", error);
-          
+
           // If the error has location information, re-throw preserving it
-          if (error instanceof Error && (error as any).start !== undefined && (error as any).end !== undefined) {
+          if (
+            error instanceof Error &&
+            (error as any).start !== undefined &&
+            (error as any).end !== undefined
+          ) {
             (error as any).loc = {
               start: { line: 0, column: (error as any).start },
               end: { line: 0, column: (error as any).end },
             };
             throw error;
           }
-          
+
           throw new Error(
             `Formatting failed: ${error instanceof Error ? error.message : "Unknown error"}`,
           );
