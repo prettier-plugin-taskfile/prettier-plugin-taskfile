@@ -22,7 +22,9 @@ describe("formatTaskSection", () => {
     if (!taskEntry) {
       throw new Error("task entry not found");
     }
-    expect(yaml.isScalar(taskEntry.key) && taskEntry.key.value).toBe("build-task");
-    expect(String(taskEntry.value)).toContain('{{.PROJECT}}');
+    expect(yaml.isScalar(taskEntry.key) && taskEntry.key.value).toBe(
+      "build-task",
+    );
+    expect(String(taskEntry.value)).toContain("{{.PROJECT}}");
   });
 });

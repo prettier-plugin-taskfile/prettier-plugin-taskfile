@@ -19,8 +19,8 @@ describe("formatVarsSection", () => {
     if (!variableEntry) {
       throw new Error("variable entry not found");
     }
-    expect(
-      yaml.isScalar(variableEntry.key) && variableEntry.key.value,
-    ).toBe("PROJECT_NAME");
+    expect(yaml.isScalar(variableEntry.key) && variableEntry.key.value).toBe(
+      "PROJECT_NAME",
+    );
   });
 });

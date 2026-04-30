@@ -367,6 +367,6 @@ tasks_with_templates:
 
     expect(formatted).toContain("tasks_with_templates:");
     expect(formatted).toContain("build-app:");
-    expect(formatted).toContain('{{.PROJECT_NAME}}');
+    expect(formatted).toContain("{{.PROJECT_NAME}}");
   });
 });

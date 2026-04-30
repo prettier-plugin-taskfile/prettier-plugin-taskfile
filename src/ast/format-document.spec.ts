@@ -20,6 +20,6 @@ version: "3"`;
     expect(result.indexOf("vars:")).toBeLessThan(result.indexOf("tasks:"));
     expect(result).toContain("PROJECT_NAME: demo");
     expect(result).toContain("build-project:");
-    expect(result).toContain('{{.PROJECT_NAME}}');
+    expect(result).toContain("{{.PROJECT_NAME}}");
   });
 });
