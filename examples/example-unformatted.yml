@@ -1,43 +1,25 @@
-version: '3'
-
-# under version section
-# under version section
-includes:
-  - ./common.yml
-
-vars:
-  PROJECT: myproject
-  LOWERCASE_VAR: should be uppercase
-  ANOTHER_VAR: value
-
-env:
-  NODE_ENV: development
-
 tasks:
-
-  # tasks section
+  test_suite:
+    cmds:
+      - echo "Testing..."
   build:
     cmds:
       - echo "Building..."
-
-  # testsuete
-  # testsuete
-  test-suite:
-    cmds:
-      - echo "Testing..."
-
-  docker-stuff:
-
-    # above cmds section
+  docker_stuff:
     cmds:
       - echo "Docker stuff"
-
+env:
+  NODE_ENV: development
+includes:
+  - ./common.yml
+vars:
+  PROJECT: myproject
+  lowercase_var: should be uppercase
+  another_var: value
 tasks_with_templates:
-
-  # greet task
   greet:
     cmds:
-      - echo "Hello " # Template variable
+      - echo "Hello {{ .NAME }}" # Template variable
       - |
-        
-        echo "Project: "
+        echo "Project: {{ .PROJECT }}"
+version: '3'

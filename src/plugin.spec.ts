@@ -1,4 +1,6 @@
-import { plugin } from "./plugin";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { plugin, checkTaskfileFormatting, formatTaskfileText } from "./plugin";
 
 describe("Prettier Plugin", () => {
   test("should have required plugin structure", () => {
@@ -249,5 +251,80 @@ tasks:
     // Check that formatting is still applied
     expect(result).toContain("PROJECT_NAME: myproject");
     expect(result).toContain("build-project:");
+  });
+
+  test("should return false for unformatted Taskfile check", () => {
+    const unformattedYaml = `tasks:
+  build_task:
+    cmds:
+      - echo "hello"
+vars:
+  project_name: demo
+version: '3'`;
+
+    expect(checkTaskfileFormatting(unformattedYaml)).toBe(false);
+  });
+
+  test("should return false for unformatted Taskfile check with root comments", () => {
+    const unformattedYamlWithComments = `# Top comment
+tasks:
+  build_task:
+    cmds:
+      - echo "hello"
+
+# Vars comment
+vars:
+  project_name: demo
+version: '3'`;
+
+    expect(checkTaskfileFormatting(unformattedYamlWithComments)).toBe(false);
+  });
+
+  test("should format commented Taskfile text without throwing", () => {
+    const unformattedYamlWithComments = `# Top comment
+tasks:
+  build_task:
+    cmds:
+      - echo "hello"
+
+# Vars comment
+vars:
+  project_name: demo
+version: '3'`;
+
+    const formatted = formatTaskfileText(unformattedYamlWithComments);
+
+    const versionIndex = formatted.indexOf("version:");
+    const varsIndex = formatted.indexOf("vars:");
+    const tasksIndex = formatted.indexOf("tasks:");
+
+    expect(versionIndex).toBeLessThan(varsIndex);
+    expect(varsIndex).toBeLessThan(tasksIndex);
+    expect(formatted).toContain("# Top comment");
+    expect(formatted).toContain("# Vars comment");
+  });
+
+  test("should report the example unformatted fixture as needing changes", () => {
+    const fixturePath = path.join(
+      __dirname,
+      "..",
+      "examples",
+      "example-unformatted.yml",
+    );
+    const fixture = fs.readFileSync(fixturePath, "utf8");
+
+    expect(checkTaskfileFormatting(fixture)).toBe(false);
+  });
+
+  test("should report the example formatted fixture as already formatted", () => {
+    const fixturePath = path.join(
+      __dirname,
+      "..",
+      "examples",
+      "example-formatted.yml",
+    );
+    const fixture = fs.readFileSync(fixturePath, "utf8");
+
+    expect(checkTaskfileFormatting(fixture)).toBe(true);
   });
 });

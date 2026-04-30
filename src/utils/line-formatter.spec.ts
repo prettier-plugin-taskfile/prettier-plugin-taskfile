@@ -40,6 +40,14 @@ describe("addEmptyLines", () => {
     expect(result.startsWith("\nversion: 3")).toBe(false);
   });
 
+  test("should remove existing blank lines before the first top-level block", () => {
+    const input = "\n\nversion: 3\nincludes:\n  - file.yml";
+    const result = addEmptyLines(input);
+
+    expect(result).toBe("version: 3\n\nincludes:\n  - file.yml");
+    expect(result.startsWith("\n")).toBe(false);
+  });
+
   test("should handle multi-line strings correctly", () => {
     const input = `version: 3
 tasks:

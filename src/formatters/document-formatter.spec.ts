@@ -171,7 +171,7 @@ tasks:
     expect(formattedYaml).toContain("{{.PROJECT_NAME}}");
   });
 
-  test("should throw error when keys are out of order with comments", () => {
+  test("should sort keys when root comments are present", () => {
     const yamlWithComments = `# Variables section
 vars:
   PROJECT: myproject
@@ -186,12 +186,18 @@ tasks:
       - echo "test"`;
 
     const doc = yaml.parseDocument(yamlWithComments);
+    const result = formatTaskfileDocument(doc, yamlWithComments);
+    const formattedYaml = result.toString();
 
-    expect(() => {
-      formatTaskfileDocument(doc, yamlWithComments);
-    }).toThrow(
-      /Key "version" appears after "vars", but should come before it\./,
-    );
+    const versionIndex = formattedYaml.indexOf("version:");
+    const varsIndex = formattedYaml.indexOf("vars:");
+    const tasksIndex = formattedYaml.indexOf("tasks:");
+
+    expect(versionIndex).toBeLessThan(varsIndex);
+    expect(varsIndex).toBeLessThan(tasksIndex);
+    expect(formattedYaml).toContain("# Variables section");
+    expect(formattedYaml).toContain("# Version comment");
+    expect(formattedYaml).toContain("# Tasks section");
   });
 
   test("should validate key order when comments are present", () => {
@@ -228,7 +234,7 @@ tasks:
     expect(formattedYaml).toContain("build:");
   });
 
-  test("should not sort when comments are present at root level", () => {
+  test("should preserve root comments while sorting keys", () => {
     const yamlWithComments = `# Top comment
 version: "3"
 # Middle comment
@@ -241,11 +247,18 @@ vars:
   PROJECT: myproject`;
 
     const doc = yaml.parseDocument(yamlWithComments);
+    const result = formatTaskfileDocument(doc, yamlWithComments);
+    const formattedYaml = result.toString();
 
-    // This should throw because vars is after tasks with comments present
-    expect(() => {
-      formatTaskfileDocument(doc, yamlWithComments);
-    }).toThrow(/appears after "tasks", but should come before it/);
+    const versionIndex = formattedYaml.indexOf("version:");
+    const varsIndex = formattedYaml.indexOf("vars:");
+    const tasksIndex = formattedYaml.indexOf("tasks:");
+
+    expect(versionIndex).toBeLessThan(varsIndex);
+    expect(varsIndex).toBeLessThan(tasksIndex);
+    expect(formattedYaml).toContain("# Top comment");
+    expect(formattedYaml).toContain("# Middle comment");
+    expect(formattedYaml).toContain("# Bottom comment");
   });
 
   test("should sort without comments when key order is wrong but no comments exist", () => {
@@ -270,7 +283,7 @@ version: "3"`;
     expect(varsIndex).toBeLessThan(tasksIndex);
   });
 
-  test("should include location information in errors", () => {
+  test("should sort root-commented documents without throwing", () => {
     const yamlWithComments = `# This file has comments
 tasks:
   build:
@@ -285,26 +298,15 @@ vars:
 version: "3"`;
 
     const doc = yaml.parseDocument(yamlWithComments);
+    const result = formatTaskfileDocument(doc, yamlWithComments);
+    const formattedYaml = result.toString();
 
-    try {
-      formatTaskfileDocument(doc, yamlWithComments);
-      fail("Should have thrown an error");
-    } catch (error) {
-      expect(error).toBeInstanceOf(Error);
-      // Check that error has location information
-      const err = error as any;
-      // The error should have start and end position information from the key's range
-      expect(typeof err.start).toBe("number");
-      expect(typeof err.end).toBe("number");
-      expect(err.start).toBeGreaterThanOrEqual(0);
-      expect(err.end).toBeGreaterThan(err.start);
-      expect(err.loc).toBeDefined();
-      expect(err.loc.start).toBeDefined();
-      expect(err.loc.end).toBeDefined();
-      expect(err.loc.start.line).toBe(0);
-      expect(typeof err.loc.start.column).toBe("number");
-      expect(typeof err.loc.end.column).toBe("number");
-    }
+    const versionIndex = formattedYaml.indexOf("version:");
+    const varsIndex = formattedYaml.indexOf("vars:");
+    const tasksIndex = formattedYaml.indexOf("tasks:");
+
+    expect(versionIndex).toBeLessThan(varsIndex);
+    expect(varsIndex).toBeLessThan(tasksIndex);
   });
 
   test("should auto-sort when only inline comments are present (no root-level comments)", () => {
@@ -341,8 +343,7 @@ tasks:
     expect(formattedYaml).toContain("# inline comment");
   });
 
-  test("should throw error when root-level comment and inline comment are mixed and keys are out of order", () => {
-    // Even if some comments are inline, a root-level comment disables auto-sort
+  test("should auto-sort when root-level and inline comments are mixed", () => {
     const yamlMixed = `# Root comment
 vars:
   PROJECT: test # inline comment
@@ -350,11 +351,14 @@ vars:
 version: "3" # inline comment`;
 
     const doc = yaml.parseDocument(yamlMixed);
+    const result = formatTaskfileDocument(doc, yamlMixed);
+    const formattedYaml = result.toString();
 
-    expect(() => {
-      formatTaskfileDocument(doc, yamlMixed);
-    }).toThrow(
-      /Key "version" appears after "vars", but should come before it\./,
-    );
+    const versionIndex = formattedYaml.indexOf("version:");
+    const varsIndex = formattedYaml.indexOf("vars:");
+
+    expect(versionIndex).toBeLessThan(varsIndex);
+    expect(formattedYaml).toContain("# Root comment");
+    expect(formattedYaml).toContain("# inline comment");
   });
 });

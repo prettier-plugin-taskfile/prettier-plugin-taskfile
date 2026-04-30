@@ -3,18 +3,14 @@ import { TASKFILE_KEY_PRIORITY } from "../constants";
 
 /**
  * Formats a YAML Document while preserving comments
- * Note: If comments are present at the root level, sorting is disabled
- * as we cannot reliably determine which comment belongs to which key.
- * In such cases, only formatting rules (uppercase vars, kebab-case tasks, etc.) are applied.
  *
  * @param doc YAML Document
- * @param sourceText The original YAML source text (optional, for comment detection)
+ * @param sourceText The original YAML source text (optional)
  * @returns The modified document (same reference)
- * @throws Error if comments are present and keys are not in the correct order
  */
 export function formatTaskfileDocument(
   doc: yaml.Document,
-  sourceText?: string,
+  _sourceText?: string,
 ): yaml.Document {
   if (!doc.contents || !yaml.isMap(doc.contents)) {
     return doc;
@@ -22,20 +18,7 @@ export function formatTaskfileDocument(
 
   const rootMap = doc.contents;
 
-  // Check if there are comments at the root level
-  // We detect comments by checking the source text for lines starting with #
-  // that appear before any key: value pairs (at the root level, indentation = 0)
-  const hasRootComments = sourceText
-    ? detectRootLevelComments(sourceText)
-    : false;
-
-  // If comments are present, validate key order instead of sorting
-  if (hasRootComments) {
-    validateKeyOrder(rootMap);
-  } else {
-    // If no comments, sort the keys according to priority
-    sortMapKeys(rootMap);
-  }
+  sortMapKeys(rootMap);
 
   // Format specific sections
   rootMap.items.forEach((item) => {
@@ -58,67 +41,6 @@ export function formatTaskfileDocument(
   });
 
   return doc;
-}
-
-/**
- * Detect if there are root-level comments in the YAML source
- * Root-level comments are those at indentation level 0 (starting with # and no leading spaces)
- */
-function detectRootLevelComments(source: string): boolean {
-  const lines = source.split("\n");
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    // Check for root-level comments (no indentation, starts with #)
-    if (trimmed.startsWith("#") && !line.startsWith(" ")) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * Validate that keys are in the correct order according to Taskfile style guide
- * @throws Error if keys are not in the correct order with detailed information
- */
-function validateKeyOrder(map: yaml.YAMLMap): void {
-  const priorityOrder: string[] = [...TASKFILE_KEY_PRIORITY];
-  let lastPriorityIndex = -1;
-  let lastKeyName = "";
-
-  for (const item of map.items) {
-    if (!yaml.isScalar(item.key)) continue;
-
-    const keyName = item.key.value as string;
-    const priorityIndex = priorityOrder.indexOf(keyName);
-
-    // Check if key is in priority order
-    if (priorityIndex !== -1) {
-      if (priorityIndex < lastPriorityIndex) {
-        const error = new Error(
-          `Key "${keyName}" appears after "${lastKeyName}", but should come before it.\n` +
-            `Current order: "version", "includes", "vars", "env", "tasks"\n` +
-            `Your order: ... "${lastKeyName}", "${keyName}" ...\n` +
-            `Please reorder your keys according to the Taskfile style guide: ${priorityOrder.join(", ")}`,
-        );
-
-        // Store location information if available
-        if (item.key.range) {
-          (error as any).loc = {
-            start: { line: 0, column: item.key.range[0] },
-            end: { line: 0, column: item.key.range[1] },
-          };
-          (error as any).start = item.key.range[0];
-          (error as any).end = item.key.range[1];
-        }
-
-        throw error;
-      }
-      lastPriorityIndex = priorityIndex;
-      lastKeyName = keyName;
-    }
-  }
 }
 
 /**

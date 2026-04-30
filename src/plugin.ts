@@ -4,6 +4,24 @@ import { TASKFILE_FILENAMES } from "./constants";
 import { formatTaskfileDocument } from "./formatters";
 import { getYamlOptions, addEmptyLines } from "./utils";
 
+function createTaskfileDocument(text: string): yaml.Document {
+  const doc = yaml.parseDocument(text);
+  (doc as any)._sourceText = text;
+  return doc;
+}
+
+function printTaskfileDocument(doc: yaml.Document): string {
+  const sourceText = (doc as any)._sourceText;
+  formatTaskfileDocument(doc, sourceText);
+
+  Object.assign(doc.options, getYamlOptions());
+
+  let yamlStr = doc.toString();
+  yamlStr = addEmptyLines(yamlStr);
+
+  return yamlStr;
+}
+
 /**
  * Prettier plugin for Taskfile YAML formatting
  */
@@ -20,15 +38,7 @@ export const plugin: Plugin = {
     "taskfile-yaml": {
       parse: (text: string) => {
         try {
-          // Parse the YAML as a Document to preserve comments
-          const doc = yaml.parseDocument(text);
-
-          // Store the source text in the document for later use
-          // This allows us to check for comments during formatting
-          (doc as any)._sourceText = text;
-
-          // Return the document instead of the parsed object
-          return doc;
+          return createTaskfileDocument(text);
         } catch (error) {
           console.error("Failed to parse YAML:", error);
           throw new Error(
@@ -65,27 +75,7 @@ export const plugin: Plugin = {
     "taskfile-yaml": {
       print: (path) => {
         try {
-          const doc = path.getNode();
-
-          // Get the source text stored during parsing
-          const sourceText = (doc as any)._sourceText;
-
-          // Format the document while preserving comments
-          formatTaskfileDocument(doc, sourceText);
-
-          // Get YAML options
-          const yamlOptions = getYamlOptions();
-
-          // Apply formatting options to the document
-          Object.assign(doc.options, yamlOptions);
-
-          // Convert to YAML string
-          let yamlStr = doc.toString();
-
-          // Add empty lines
-          yamlStr = addEmptyLines(yamlStr);
-
-          return yamlStr;
+          return printTaskfileDocument(path.getNode());
         } catch (error) {
           console.error("Failed to format Taskfile:", error);
 
@@ -110,3 +100,14 @@ export const plugin: Plugin = {
     },
   },
 };
+
+export function formatTaskfileText(text: string): string {
+  const parser = plugin.parsers!["taskfile-yaml"];
+  const doc = parser.parse(text, {} as any) as yaml.Document;
+
+  return printTaskfileDocument(doc);
+}
+
+export function checkTaskfileFormatting(text: string): boolean {
+  return formatTaskfileText(text) === text;
+}
