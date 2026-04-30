@@ -1,5 +1,5 @@
 import { TaskfileTasks } from "../types";
-import { REGEX_PATTERNS } from "../constants";
+import { normalizeTaskName } from "../rules/normalize-task-name";
 
 /**
  * Converts task names to kebab case according to the style guide.
@@ -13,16 +13,7 @@ export function kebabCaseTaskNames(tasks: TaskfileTasks): TaskfileTasks {
 
   const result: TaskfileTasks = {};
   for (const key in tasks) {
-    // Preserve namespace separators (colons)
-    const parts = key.split(":");
-    const kebabParts = parts.map((part) =>
-      part.replace(
-        REGEX_PATTERNS.UNDERSCORE_LOWERCASE,
-        (_, letter) => `-${letter}`,
-      ),
-    );
-    const newKey = kebabParts.join(":");
-    result[newKey] = tasks[key];
+    result[normalizeTaskName(key)] = tasks[key];
   }
   return result;
 }

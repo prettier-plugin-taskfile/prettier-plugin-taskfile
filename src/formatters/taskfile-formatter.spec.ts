@@ -267,4 +267,17 @@ describe("formatTaskfile", () => {
     ]);
     expect(result.tasks_special?.["task-without-cmds"]?.cmds).toBeUndefined();
   });
+
+  test("should preserve null task entries without trying to process commands", () => {
+    const input = {
+      version: "3",
+      tasks_special: {
+        skipped_task: null,
+      },
+    };
+
+    const result = formatTaskfile(input as any);
+
+    expect(result.tasks_special?.["skipped-task"]).toBeNull();
+  });
 });

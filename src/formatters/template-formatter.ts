@@ -1,4 +1,7 @@
-import { REGEX_PATTERNS } from "../constants";
+import {
+  normalizeCommand,
+  normalizeTemplateWhitespace,
+} from "../rules/normalize-template-whitespace";
 
 /**
  * Removes whitespace in template variables according to the style guide.
@@ -7,8 +10,7 @@ import { REGEX_PATTERNS } from "../constants";
  * @returns The text with whitespace removed from template variables
  */
 export function removeTemplateWhitespace(text: string): string {
-  // Replace {{ .VAR }} with {{.VAR}}
-  return text.replace(REGEX_PATTERNS.TEMPLATE_WHITESPACE, "{{.$1}}");
+  return normalizeTemplateWhitespace(text);
 }
 
 /**
@@ -20,10 +22,5 @@ export function removeTemplateWhitespace(text: string): string {
 export function processCommands<T>(cmds: T[]): (T | string)[] {
   if (!cmds) return cmds;
 
-  return cmds.map((cmd) => {
-    if (typeof cmd === "string") {
-      return removeTemplateWhitespace(cmd);
-    }
-    return cmd;
-  });
+  return cmds.map((cmd) => normalizeCommand(cmd));
 }

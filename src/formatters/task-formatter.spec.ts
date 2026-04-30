@@ -94,25 +94,23 @@ describe("kebabCaseTaskNames", () => {
 
     const result = kebabCaseTaskNames(input);
 
-    expect(result["Build-app"]).toBeDefined();
-    expect(result["TEST-suite"]).toBeDefined();
+    expect(result["build-app"]).toBeDefined();
+    expect(result["test-suite"]).toBeDefined();
     expect(result["deploy-production"]).toBeDefined();
   });
 
-  test("should only convert lowercase letters after underscores", () => {
+  test("should normalize task names consistently", () => {
     const input = {
-      task_A: { cmds: ["echo test"] }, // Should not convert A (uppercase)
-      task_a: { cmds: ["echo test"] }, // Should convert a (lowercase)
-      TASK_B: { cmds: ["echo test"] }, // Should not convert B (uppercase)
-      TASK_b: { cmds: ["echo test"] }, // Should convert b (lowercase)
+      task_A: { cmds: ["echo test"] },
+      task_a: { cmds: ["echo test"] },
+      TASK_B: { cmds: ["echo test"] },
+      TASK_b: { cmds: ["echo test"] },
     };
 
     const result = kebabCaseTaskNames(input);
 
-    expect(result.task_A).toBeDefined(); // A stays as underscore (not converted)
-    expect(result["task-a"]).toBeDefined(); // a becomes dash
-    expect(result.TASK_B).toBeDefined(); // B stays as underscore (not converted)
-    expect(result["TASK-b"]).toBeDefined(); // b becomes dash
+    expect(result["task-a"]).toBeDefined();
+    expect(result["task-b"]).toBeDefined();
   });
 
   test("should handle numbers in task names", () => {
@@ -124,8 +122,8 @@ describe("kebabCaseTaskNames", () => {
 
     const result = kebabCaseTaskNames(input);
 
-    expect(result.task_1).toBeDefined(); // Numbers don't trigger conversion
-    expect(result["build-v2"]).toBeDefined(); // Only 'v' gets converted
-    expect(result["test_3-suite"]).toBeDefined(); // 's' gets converted to dash
+    expect(result["task-1"]).toBeDefined();
+    expect(result["build-v2"]).toBeDefined();
+    expect(result["test-3-suite"]).toBeDefined();
   });
 });
