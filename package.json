@@ -6,7 +6,8 @@
   "type": "commonjs",
   "main": "./dist/index.js",
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "exports": {
     "types": "./dist/index.d.ts",
