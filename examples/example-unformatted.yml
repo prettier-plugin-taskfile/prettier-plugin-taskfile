@@ -1,11 +1,14 @@
 tasks:
-  test_suite:
-    cmds:
-      - echo "Testing..."
+  # tasks section
   build:
     cmds:
       - echo "Building..."
+  # testsuite
+  test_suite:
+    cmds:
+      - echo "Testing..."
   docker_stuff:
+    # above cmds section
     cmds:
       - echo "Docker stuff"
 env:
@@ -17,9 +20,10 @@ vars:
   lowercase_var: should be uppercase
   another_var: value
 tasks_with_templates:
+  # greet task
   greet:
     cmds:
       - echo "Hello {{ .NAME }}" # Template variable
       - |
         echo "Project: {{ .PROJECT }}"
-version: '3'
+version: '3' # version section
