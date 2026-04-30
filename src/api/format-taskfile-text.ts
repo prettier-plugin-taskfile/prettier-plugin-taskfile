@@ -4,9 +4,7 @@ import { addEmptyLines } from "../render/add-empty-lines";
 import { getYamlOptions } from "../render/yaml-options";
 
 export function createTaskfileDocument(text: string): yaml.Document {
-  const doc = yaml.parseDocument(text);
-  (doc as yaml.Document & { _sourceText?: string })._sourceText = text;
-  return doc;
+  return yaml.parseDocument(text);
 }
 
 export function printTaskfileDocument(doc: yaml.Document): string {
