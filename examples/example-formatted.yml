@@ -1,4 +1,4 @@
-version: "3"
+version: '3' # version section
 
 includes:
   - ./common.yml
@@ -12,21 +12,25 @@ env:
   NODE_ENV: development
 
 tasks:
+  # tasks section
   build:
     cmds:
       - echo "Building..."
 
+  # testsuite
   test-suite:
     cmds:
       - echo "Testing..."
 
   docker-stuff:
+    # above cmds section
     cmds:
       - echo "Docker stuff"
 
 tasks_with_templates:
+  # greet task
   greet:
     cmds:
-      - echo "Hello {{.NAME}}"
+      - echo "Hello " # Template variable
       - |
-        echo "Project: {{.PROJECT}}"
+        echo "Project: "

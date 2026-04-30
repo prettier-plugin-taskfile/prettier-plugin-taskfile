@@ -17,7 +17,7 @@ export function removeTemplateWhitespace(text: string): string {
  * @param cmds Array of command strings
  * @returns Processed array of command strings
  */
-export function processCommands(cmds: any[]): any[] {
+export function processCommands<T>(cmds: T[]): (T | string)[] {
   if (!cmds) return cmds;
 
   return cmds.map((cmd) => {

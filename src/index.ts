@@ -1,4 +1,4 @@
-import { plugin } from "./plugin";
+import { plugin, formatTaskfileText, checkTaskfileFormatting } from "./plugin";
 
 // Import functions for CommonJS compatibility
 import {
@@ -20,6 +20,8 @@ export {
   removeTemplateWhitespace,
   processCommands,
   formatTaskfile,
+  formatTaskfileText,
+  checkTaskfileFormatting,
   getYamlOptions,
   addEmptyLines,
 };
@@ -35,5 +37,7 @@ module.exports.kebabCaseTaskNames = kebabCaseTaskNames;
 module.exports.removeTemplateWhitespace = removeTemplateWhitespace;
 module.exports.processCommands = processCommands;
 module.exports.formatTaskfile = formatTaskfile;
+module.exports.formatTaskfileText = formatTaskfileText;
+module.exports.checkTaskfileFormatting = checkTaskfileFormatting;
 module.exports.getYamlOptions = getYamlOptions;
 module.exports.addEmptyLines = addEmptyLines;

@@ -40,6 +40,14 @@ describe("addEmptyLines", () => {
     expect(result.startsWith("\nversion: 3")).toBe(false);
   });
 
+  test("should remove existing blank lines before the first top-level block", () => {
+    const input = "\n\nversion: 3\nincludes:\n  - file.yml";
+    const result = addEmptyLines(input);
+
+    expect(result).toBe("version: 3\n\nincludes:\n  - file.yml");
+    expect(result.startsWith("\n")).toBe(false);
+  });
+
   test("should handle multi-line strings correctly", () => {
     const input = `version: 3
 tasks:
@@ -271,5 +279,42 @@ tasks:
     // Should add empty line between task definitions when previous line is not empty
     expect(result).toContain("desc: description\n\n  task2:");
     expect(result).toContain("version: 3\n\ntasks:");
+  });
+  test("should handle comments before task definitions correctly", () => {
+    const input = `tasks:
+  # Build task
+  build:
+    cmds:
+      - echo "Building..."
+  # Test task
+  test:
+    cmds:
+      - echo "Testing..."`;
+
+    const result = addEmptyLines(input);
+
+    // Should not add empty line between comment and task definition
+    expect(result).toContain("# Build task\n  build:");
+    expect(result).toContain("# Test task\n  test:");
+    // Should add empty line before comment that follows task content
+    expect(result).toContain('echo "Building..."\n\n  # Test task');
+  });
+
+  test("should add empty lines before comments that follow task content", () => {
+    const input = `tasks:
+  build:
+    cmds:
+      - echo "Building..."
+  # Comment for next task
+  test:
+    cmds:
+      - echo "Testing..."`;
+
+    const result = addEmptyLines(input);
+
+    // Should add empty line before comment that follows task content
+    expect(result).toContain('echo "Building..."\n\n  # Comment for next task');
+    // Should not add empty line between comment and task definition
+    expect(result).toContain("# Comment for next task\n  test:");
   });
 });

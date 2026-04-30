@@ -1,8 +1,26 @@
 import { Plugin } from "prettier";
 import * as yaml from "yaml";
 import { TASKFILE_FILENAMES } from "./constants";
-import { formatTaskfile } from "./formatters";
+import { formatTaskfileDocument } from "./formatters";
 import { getYamlOptions, addEmptyLines } from "./utils";
+
+function createTaskfileDocument(text: string): yaml.Document {
+  const doc = yaml.parseDocument(text);
+  (doc as any)._sourceText = text;
+  return doc;
+}
+
+function printTaskfileDocument(doc: yaml.Document): string {
+  const sourceText = (doc as any)._sourceText;
+  formatTaskfileDocument(doc, sourceText);
+
+  Object.assign(doc.options, getYamlOptions());
+
+  let yamlStr = doc.toString();
+  yamlStr = addEmptyLines(yamlStr);
+
+  return yamlStr;
+}
 
 /**
  * Prettier plugin for Taskfile YAML formatting
@@ -18,11 +36,9 @@ export const plugin: Plugin = {
   ],
   parsers: {
     "taskfile-yaml": {
-      parse: (text: string, options: any) => {
+      parse: (text: string) => {
         try {
-          // Parse the YAML
-          const obj = yaml.parse(text);
-          return obj;
+          return createTaskfileDocument(text);
         } catch (error) {
           console.error("Failed to parse YAML:", error);
           throw new Error(
@@ -31,29 +47,51 @@ export const plugin: Plugin = {
         }
       },
       astFormat: "taskfile-yaml",
-      locStart: () => 0,
-      locEnd: () => 0,
+      locStart: (node: any) => {
+        // Use stored start position if available
+        if (node && node.start !== undefined) {
+          return node.start;
+        }
+        // Fall back to range if available
+        if (node && node.range && Array.isArray(node.range)) {
+          return node.range[0];
+        }
+        return 0;
+      },
+      locEnd: (node: any) => {
+        // Use stored end position if available
+        if (node && node.end !== undefined) {
+          return node.end;
+        }
+        // Fall back to range if available
+        if (node && node.range && Array.isArray(node.range)) {
+          return node.range[1];
+        }
+        return 0;
+      },
     },
   },
   printers: {
     "taskfile-yaml": {
-      print: (path: any) => {
+      print: (path) => {
         try {
-          const obj = path.getValue();
-
-          // Format the Taskfile
-          const formattedObj = formatTaskfile(obj);
-
-          // Convert to YAML
-          const yamlOptions = getYamlOptions();
-          let yamlStr = yaml.stringify(formattedObj, yamlOptions);
-
-          // Add empty lines
-          yamlStr = addEmptyLines(yamlStr);
-
-          return yamlStr;
+          return printTaskfileDocument(path.getNode());
         } catch (error) {
           console.error("Failed to format Taskfile:", error);
+
+          // If the error has location information, re-throw preserving it
+          if (
+            error instanceof Error &&
+            (error as any).start !== undefined &&
+            (error as any).end !== undefined
+          ) {
+            (error as any).loc = {
+              start: { line: 0, column: (error as any).start },
+              end: { line: 0, column: (error as any).end },
+            };
+            throw error;
+          }
+
           throw new Error(
             `Formatting failed: ${error instanceof Error ? error.message : "Unknown error"}`,
           );
@@ -62,3 +100,14 @@ export const plugin: Plugin = {
     },
   },
 };
+
+export function formatTaskfileText(text: string): string {
+  const parser = plugin.parsers!["taskfile-yaml"];
+  const doc = parser.parse(text, {} as any) as yaml.Document;
+
+  return printTaskfileDocument(doc);
+}
+
+export function checkTaskfileFormatting(text: string): boolean {
+  return formatTaskfileText(text) === text;
+}

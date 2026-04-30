@@ -22,11 +22,11 @@ tasks:
 
   format-taskfiles:
     desc: Format Taskfiles using this plugin
+    dir: "{{.EXAMPLE_DIR}}"
     deps:
       - build
     cmds:
-      - prettier --write "Taskfile.yml" --plugin=./{{.DIST_DIR}}/index.js
-      - prettier --write "{{.EXAMPLE_DIR}}/**/*.{yml,yaml}" --plugin=./{{.DIST_DIR}}/index.js
+      - npx prettier --write .
 
   clean:
     desc: Clean build artifacts
@@ -93,7 +93,9 @@ tasks:
                 echo "Project: {{.PROJECT}}"
         version: '3'
         EOF
-      - prettier --write "{{.EXAMPLE_DIR}}/example-unformatted.yml" --plugin=./{{.DIST_DIR}}/index.js --output-path="{{.EXAMPLE_DIR}}/example-formatted.yml"
+      - prettier --write "{{.EXAMPLE_DIR}}/example-unformatted.yml"
+        --plugin=./{{.DIST_DIR}}/index.js
+        --output-path="{{.EXAMPLE_DIR}}/example-formatted.yml"
       - echo "Example Taskfiles created in {{.EXAMPLE_DIR}} directory"
 
   setup-dev:
