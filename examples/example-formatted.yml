@@ -31,6 +31,6 @@ tasks_with_templates:
   # greet task
   greet:
     cmds:
-      - echo "Hello " # Template variable
+      - echo "Hello {{.NAME}}" # Template variable
       - |
-        echo "Project: "
+        echo "Project: {{.PROJECT}}"

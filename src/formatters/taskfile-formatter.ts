@@ -3,6 +3,20 @@ import { sortTaskfileKeys } from "./key-sorter";
 import { uppercaseVariableNames } from "./variable-formatter";
 import { kebabCaseTaskNames } from "./task-formatter";
 import { processCommands } from "./template-formatter";
+import { isTaskLikeSection } from "../rules/is-task-like-section";
+
+function formatTaskCollection(tasks: Record<string, any>): Record<string, any> {
+  const formattedTasks = kebabCaseTaskNames(tasks);
+
+  for (const taskName in formattedTasks) {
+    const task = formattedTasks[taskName];
+    if (task?.cmds) {
+      task.cmds = processCommands(task.cmds);
+    }
+  }
+
+  return formattedTasks;
+}
 
 /**
  * Formats a Taskfile object according to the style guide.
@@ -11,51 +25,28 @@ import { processCommands } from "./template-formatter";
  * @returns A formatted Taskfile object
  */
 export function formatTaskfile(obj: Taskfile): Taskfile {
-  // Handle null or undefined input
   if (!obj) {
     return {};
   }
 
-  // Sort keys according to priority
   const sortedObj = sortTaskfileKeys(obj);
 
-  // Format vars (uppercase variable names)
   if (sortedObj.vars) {
     sortedObj.vars = uppercaseVariableNames(sortedObj.vars);
   }
 
-  // Format tasks (kebab-case task names, process commands)
   if (sortedObj.tasks) {
-    const formattedTasks = kebabCaseTaskNames(sortedObj.tasks);
-
-    // Process each task's commands to remove whitespace in template variables
-    for (const taskName in formattedTasks) {
-      const task = formattedTasks[taskName];
-      if (task.cmds) {
-        task.cmds = processCommands(task.cmds);
-      }
-    }
-
-    sortedObj.tasks = formattedTasks;
+    sortedObj.tasks = formatTaskCollection(sortedObj.tasks);
   }
 
-  // Handle tasks_with_templates or any other task-like sections
   for (const key in sortedObj) {
     if (
-      key.startsWith("tasks_") &&
-      typeof (sortedObj as any)[key] === "object"
+      isTaskLikeSection(key) &&
+      key !== "tasks" &&
+      typeof (sortedObj as any)[key] === "object" &&
+      (sortedObj as any)[key] !== null
     ) {
-      const formattedTasks = kebabCaseTaskNames((sortedObj as any)[key]);
-
-      // Process each task's commands to remove whitespace in template variables
-      for (const taskName in formattedTasks) {
-        const task = formattedTasks[taskName];
-        if (task.cmds) {
-          task.cmds = processCommands(task.cmds);
-        }
-      }
-
-      (sortedObj as any)[key] = formattedTasks;
+      (sortedObj as any)[key] = formatTaskCollection((sortedObj as any)[key]);
     }
   }
 

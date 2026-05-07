@@ -185,6 +185,34 @@ describe("Prettier Plugin", () => {
     }).toThrow("Formatting failed: Unknown error");
   });
 
+  test("should preserve location information when printer errors include start and end", () => {
+    const printer = plugin.printers!["taskfile-yaml"];
+    const error = new Error("Located error") as Error & {
+      start: number;
+      end: number;
+      loc?: {
+        start: { line: number; column: number };
+        end: { line: number; column: number };
+      };
+    };
+    error.start = 4;
+    error.end = 9;
+
+    const mockPath = {
+      getNode: () => {
+        throw error;
+      },
+    };
+
+    expect(() => {
+      printer.print(mockPath as any, {} as any, {} as any);
+    }).toThrow(error);
+    expect(error.loc).toEqual({
+      start: { line: 0, column: 4 },
+      end: { line: 0, column: 9 },
+    });
+  });
+
   test("should have locStart and locEnd functions", () => {
     const parser = plugin.parsers!["taskfile-yaml"];
 
@@ -326,5 +354,19 @@ version: '3'`;
     const fixture = fs.readFileSync(fixturePath, "utf8");
 
     expect(checkTaskfileFormatting(fixture)).toBe(true);
+  });
+
+  test("should format task-like sections beyond tasks", () => {
+    const input = `version: "3"
+tasks_with_templates:
+  build_app:
+    cmds:
+      - echo "{{ .PROJECT_NAME }}"`;
+
+    const formatted = formatTaskfileText(input);
+
+    expect(formatted).toContain("tasks_with_templates:");
+    expect(formatted).toContain("build-app:");
+    expect(formatted).toContain("{{.PROJECT_NAME}}");
   });
 });

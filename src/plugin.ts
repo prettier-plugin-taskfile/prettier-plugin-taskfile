@@ -1,26 +1,11 @@
 import { Plugin } from "prettier";
-import * as yaml from "yaml";
 import { TASKFILE_FILENAMES } from "./constants";
-import { formatTaskfileDocument } from "./formatters";
-import { getYamlOptions, addEmptyLines } from "./utils";
-
-function createTaskfileDocument(text: string): yaml.Document {
-  const doc = yaml.parseDocument(text);
-  (doc as any)._sourceText = text;
-  return doc;
-}
-
-function printTaskfileDocument(doc: yaml.Document): string {
-  const sourceText = (doc as any)._sourceText;
-  formatTaskfileDocument(doc, sourceText);
-
-  Object.assign(doc.options, getYamlOptions());
-
-  let yamlStr = doc.toString();
-  yamlStr = addEmptyLines(yamlStr);
-
-  return yamlStr;
-}
+import {
+  checkTaskfileFormatting,
+  createTaskfileDocument,
+  formatTaskfileText,
+  printTaskfileDocument,
+} from "./api/format-taskfile-text";
 
 /**
  * Prettier plugin for Taskfile YAML formatting
@@ -48,22 +33,18 @@ export const plugin: Plugin = {
       },
       astFormat: "taskfile-yaml",
       locStart: (node: any) => {
-        // Use stored start position if available
         if (node && node.start !== undefined) {
           return node.start;
         }
-        // Fall back to range if available
         if (node && node.range && Array.isArray(node.range)) {
           return node.range[0];
         }
         return 0;
       },
       locEnd: (node: any) => {
-        // Use stored end position if available
         if (node && node.end !== undefined) {
           return node.end;
         }
-        // Fall back to range if available
         if (node && node.range && Array.isArray(node.range)) {
           return node.range[1];
         }
@@ -79,7 +60,6 @@ export const plugin: Plugin = {
         } catch (error) {
           console.error("Failed to format Taskfile:", error);
 
-          // If the error has location information, re-throw preserving it
           if (
             error instanceof Error &&
             (error as any).start !== undefined &&
@@ -100,14 +80,4 @@ export const plugin: Plugin = {
     },
   },
 };
-
-export function formatTaskfileText(text: string): string {
-  const parser = plugin.parsers!["taskfile-yaml"];
-  const doc = parser.parse(text, {} as any) as yaml.Document;
-
-  return printTaskfileDocument(doc);
-}
-
-export function checkTaskfileFormatting(text: string): boolean {
-  return formatTaskfileText(text) === text;
-}
+export { formatTaskfileText, checkTaskfileFormatting };

@@ -317,4 +317,17 @@ tasks:
     // Should not add empty line between comment and task definition
     expect(result).toContain("# Comment for next task\n  test:");
   });
+
+  test("should flush trailing comments at end of file", () => {
+    const input = `tasks:
+  build:
+    cmds:
+      - echo "Building..."
+  # trailing comment`;
+
+    const result = addEmptyLines(input);
+
+    expect(result.endsWith("  # trailing comment")).toBe(true);
+    expect(result).toContain('echo "Building..."\n  # trailing comment');
+  });
 });
