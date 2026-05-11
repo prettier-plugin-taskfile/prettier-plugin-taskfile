@@ -65,7 +65,7 @@ export function addEmptyLines(yamlStr: string): string {
       continue;
     }
 
-    const isMainSection = !!trimmedLine.match(REGEX_PATTERNS.MAIN_SECTION);
+    const isMainSection = !!line.match(REGEX_PATTERNS.MAIN_SECTION);
     const isTasksHeader = !!trimmedLine.match(
       /^(tasks|tasks_with_templates):$/,
     );

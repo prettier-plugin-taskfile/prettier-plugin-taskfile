@@ -11,6 +11,11 @@ tasks:
     # above cmds section
     cmds:
       - echo "Docker stuff"
+  with_vars:
+    cmds:
+      - echo "{{.VALUE}}"
+    vars:
+      VALUE: test
 env:
   NODE_ENV: development
 includes:
