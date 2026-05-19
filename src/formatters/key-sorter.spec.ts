@@ -9,6 +9,16 @@ describe("sortTaskfileKeys", () => {
       vars: {},
       version: "3",
       custom: {},
+      dotenv: {},
+      output: {},
+      method: "checksum",
+      silent: false,
+      run: "always",
+      interval: "100ms",
+      set: [],
+      shopt: [],
+      templates: {},
+      defaults: {},
     };
 
     const result = sortTaskfileKeys(input);
@@ -17,10 +27,20 @@ describe("sortTaskfileKeys", () => {
     // Check priority order
     expect(keys[0]).toBe("version");
     expect(keys[1]).toBe("includes");
-    expect(keys[2]).toBe("vars");
-    expect(keys[3]).toBe("env");
-    expect(keys[4]).toBe("tasks");
-    expect(keys[5]).toBe("custom"); // Non-priority keys should be sorted alphabetically
+    expect(keys[2]).toBe("output");
+    expect(keys[3]).toBe("method");
+    expect(keys[4]).toBe("silent");
+    expect(keys[5]).toBe("run");
+    expect(keys[6]).toBe("interval");
+    expect(keys[7]).toBe("set");
+    expect(keys[8]).toBe("shopt");
+    expect(keys[9]).toBe("vars");
+    expect(keys[10]).toBe("env");
+    expect(keys[11]).toBe("dotenv");
+    expect(keys[12]).toBe("tasks");
+    expect(keys[13]).toBe("custom"); // Non-priority keys should be sorted alphabetically at the end of the list
+    expect(keys[14]).toBe("defaults");
+    expect(keys[15]).toBe("templates");
   });
 
   test("should handle missing keys", () => {
@@ -86,12 +106,15 @@ describe("sortTaskfileKeys", () => {
     // Check that priority keys come first
     expect(keys[0]).toBe("version");
     expect(keys[1]).toBe("includes");
-    expect(keys[2]).toBe("vars");
-    expect(keys[3]).toBe("env");
-    expect(keys[4]).toBe("tasks");
+    expect(keys[2]).toBe("output");
+    expect(keys[3]).toBe("method");
+    expect(keys[4]).toBe("silent");
+    expect(keys[5]).toBe("vars");
+    expect(keys[6]).toBe("env");
+    expect(keys[7]).toBe("tasks");
 
     // Check that other keys are sorted alphabetically
-    const otherKeys = keys.slice(5);
+    const otherKeys = keys.slice(7);
     const sortedOtherKeys = [...otherKeys].sort();
     expect(otherKeys).toEqual(sortedOtherKeys);
   });

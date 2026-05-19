@@ -4,12 +4,24 @@
 
 /**
  * Priority order for Taskfile top-level keys according to the style guide
+ *
+ * https://taskfile.dev/docs/styleguide#use-the-suggested-ordering-of-the-main-sections
  */
 export const TASKFILE_KEY_PRIORITY = [
   "version",
   "includes",
+  // "optional configurations" (cf. https://taskfile.dev/docs/styleguide#use-the-suggested-ordering-of-the-main-sections) in the order from https://taskfile.dev/docs/reference/schema#root-schema
+  "output",
+  "method",
+  "silent",
+  "run",
+  "interval",
+  "set",
+  "shopt",
+  // end of "optional configurations"
   "vars",
   "env",
+  "dotenv",
   "tasks",
 ] as const;
 
@@ -43,7 +55,7 @@ export const REGEX_PATTERNS = {
   TEMPLATE_WHITESPACE: /\{\{\s*\.\s*([A-Z0-9_]+)\s*\}\}/g,
 
   // Main section pattern
-  MAIN_SECTION: /^(version|includes|vars|env|tasks|tasks_with_templates):$/,
+  MAIN_SECTION: /^[a-z_][a-z0-9_:-]*:$/i,
 
   // Task definition pattern (2-space indented keys ending with colon)
   TASK_DEFINITION: /^  [a-zA-Z0-9_-]+:(\s|$)/,

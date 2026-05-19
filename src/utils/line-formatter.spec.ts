@@ -13,6 +13,36 @@ describe("addEmptyLines", () => {
     expect(result).toContain("ENV: value\n\ntasks:");
   });
 
+  test("should add empty lines between custom main sections", () => {
+    const input = `tasks:
+  task:
+    cmds:
+      - echo "test"
+defaults:
+  DEFAULT: value
+custom:
+  CUSTOM: value
+# Comment for templates
+templates:
+  TEMPLATE: value
+`;
+    const result = addEmptyLines(input);
+
+    // Check for empty lines between sections
+    expect(result).toContain(`echo "test"
+
+defaults:`);
+    expect(result).toContain(`defaults:
+  DEFAULT: value
+
+custom:`);
+    expect(result).toContain(`custom:
+  CUSTOM: value
+
+# Comment for templates
+templates:`);
+  });
+
   test("should add empty lines between tasks", () => {
     const input =
       'tasks:\n  task1:\n    cmds:\n      - echo "test1"\n  task2:\n    cmds:\n      - echo "test2"';
@@ -329,5 +359,39 @@ tasks:
 
     expect(result.endsWith("  # trailing comment")).toBe(true);
     expect(result).toContain('echo "Building..."\n  # trailing comment');
+  });
+
+ test("should not add empty lines between sub sections with main section names", () => {
+    const input = `version: 3
+vars:
+  VAR: value
+tasks:
+  task_with_args:
+    cmd: "echo {{.VALUE}}"
+    vars:
+      VAR: value
+  task_with_env:
+    cmd: "echo {{.VALUE}}"
+    env:
+      ENV: value
+`;
+    const result = addEmptyLines(input);
+
+    expect(result).toEqual(`version: 3
+
+vars:
+  VAR: value
+
+tasks:
+  task_with_args:
+    cmd: "echo {{.VALUE}}"
+    vars:
+      VAR: value
+
+  task_with_env:
+    cmd: "echo {{.VALUE}}"
+    env:
+      ENV: value
+`);
   });
 });
