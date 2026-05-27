@@ -369,4 +369,38 @@ tasks_with_templates:
     expect(formatted).toContain("build-app:");
     expect(formatted).toContain("{{.PROJECT_NAME}}");
   });
+
+  test("should indent with 2 spaces", () => {
+    const input = `version: "3"
+
+tasks:
+   desc: The task
+   cmds:
+      - echo 87
+`
+
+    const formatted = formatTaskfileText(input);
+    expect(formatted).toEqual(`version: "3"
+
+tasks:
+  desc: The task
+  cmds:
+    - echo 87
+`)
+  });
+
+  test("should not wrap lines", () => {
+    const input = `version: "3"
+
+# Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+tasks:
+  desc: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+  cmds:
+    - echo "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+`
+
+    const formatted = formatTaskfileText(input);
+    expect(formatted).toEqual(input)
+  });
 });
