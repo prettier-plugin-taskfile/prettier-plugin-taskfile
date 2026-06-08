@@ -27,6 +27,8 @@ export const TASKFILE_KEY_PRIORITY = [
 
 /**
  * Default YAML stringify options for Taskfile formatting
+ *
+ * @see https://eemeli.org/yaml/#tostring-options
  */
 export const DEFAULT_YAML_OPTIONS = {
   indent: 2, // Use two spaces for indentation

@@ -9,8 +9,8 @@ export function createTaskfileDocument(text: string): yaml.Document {
 
 export function printTaskfileDocument(doc: yaml.Document): string {
   formatTaskfileDocument(doc);
-  Object.assign(doc.options, getYamlOptions());
-  return addEmptyLines(doc.toString());
+
+  return addEmptyLines(doc.toString(getYamlOptions()));
 }
 
 export function formatTaskfileText(text: string): string {
