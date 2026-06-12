@@ -1,1 +1,1 @@
-export { getYamlOptions, type PrettierOptions } from "../render/yaml-options";
+export { getYamlOptions } from "../render/yaml-options";

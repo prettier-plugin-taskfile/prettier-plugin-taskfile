@@ -361,7 +361,7 @@ tasks:
     expect(result).toContain('echo "Building..."\n  # trailing comment');
   });
 
- test("should not add empty lines between sub sections with main section names", () => {
+  test("should not add empty lines between sub sections with main section names", () => {
     const input = `version: 3
 vars:
   VAR: value

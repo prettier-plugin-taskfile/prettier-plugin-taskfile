@@ -12,14 +12,13 @@ This plugin implements all the formatting rules from the [Taskfile Style Guide](
   3. `vars`
   4. `env`
   5. `tasks`
-- **Consistent indentation**: Uses two spaces by default (configurable via `tabWidth`)
+- **Consistent indentation**: Uses two spaces by default (configurable via Prettier's `tabWidth`)
 - **Proper spacing**: Adds empty lines between main sections and between tasks
 - **Variable naming**: Converts variable names to uppercase
 - **Task naming**: Converts task names to kebab-case (e.g., `do-something` instead of `do_something`)
 - **Template formatting**: Removes whitespace in template variables (e.g., `{{.VAR}}` instead of `{{ .VAR }}`)
 - **Namespace preservation**: Preserves task namespace separators with colons (e.g., `docker:build`)
-- **YAML formatting**: Preserves YAML formatting while applying all style guide rules
-- **Integration**: Works with Prettier's standard YAML formatting
+- **YAML formatting**: Delegates to Prettier's built-in YAML formatter for indentation, quoting, and line wrapping
 
 ## Installation
 
@@ -78,13 +77,15 @@ For sub-taskfiles (e.g., `Taskfile.docker.yml`, `Taskfile.deploy.yml`), add an `
 
 ### Prettier Options
 
-This plugin respects the following standard Prettier options:
+This plugin delegates final YAML formatting to Prettier's built-in YAML formatter, so all standard Prettier options for YAML are supported:
 
-| Option | Description | Default |
-|---|---|---|
-| `tabWidth` | Number of spaces per indentation level | `2` |
-| `printWidth` | Line width before wrapping (`0` = no wrapping) | `0` (no wrapping) |
-| `singleQuote` | Prefer single quotes for newly generated values | `false` |
+| Option           | Description                                                 | Default      |
+| ---------------- | ----------------------------------------------------------- | ------------ |
+| `tabWidth`       | Number of spaces per indentation level                      | `2`          |
+| `printWidth`     | Line width before wrapping                                  | `80`         |
+| `singleQuote`    | Use single quotes instead of double quotes                  | `false`      |
+| `proseWrap`      | How to wrap long text (`"preserve"`, `"always"`, `"never"`) | `"preserve"` |
+| `bracketSpacing` | Print spaces between brackets in flow mappings              | `true`       |
 
 Example:
 
@@ -92,11 +93,10 @@ Example:
 {
   "plugins": ["prettier-plugin-taskfile"],
   "tabWidth": 2,
-  "singleQuote": true
+  "singleQuote": true,
+  "proseWrap": "preserve"
 }
 ```
-
-> **Note:** `singleQuote` only affects the default quote style for newly generated values. Existing quotes are preserved to avoid changing YAML semantics (double quotes support escape sequences like `\n`, while single quotes do not).
 
 ### Editor Integration
 
