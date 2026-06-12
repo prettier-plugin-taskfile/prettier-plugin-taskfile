@@ -12,7 +12,7 @@ This plugin implements all the formatting rules from the [Taskfile Style Guide](
   3. `vars`
   4. `env`
   5. `tasks`
-- **Consistent indentation**: Uses two spaces for indentation
+- **Consistent indentation**: Uses two spaces by default (configurable via `tabWidth`)
 - **Proper spacing**: Adds empty lines between main sections and between tasks
 - **Variable naming**: Converts variable names to uppercase
 - **Task naming**: Converts task names to kebab-case (e.g., `do-something` instead of `do_something`)
@@ -50,6 +50,53 @@ Add the plugin to your Prettier configuration (`.prettierrc`, `.prettierrc.json`
   "plugins": ["prettier-plugin-taskfile"]
 }
 ```
+
+### Automatic File Detection
+
+The plugin automatically recognizes the following filenames without requiring any parser configuration:
+
+- `Taskfile.yml`
+- `Taskfile.yaml`
+- `taskfile.yml`
+- `taskfile.yaml`
+
+For sub-taskfiles (e.g., `Taskfile.docker.yml`, `Taskfile.deploy.yml`), add an `overrides` entry to your Prettier configuration:
+
+```json
+{
+  "plugins": ["prettier-plugin-taskfile"],
+  "overrides": [
+    {
+      "files": "Taskfile*.{yml,yaml}",
+      "options": {
+        "parser": "taskfile-yaml"
+      }
+    }
+  ]
+}
+```
+
+### Prettier Options
+
+This plugin respects the following standard Prettier options:
+
+| Option | Description | Default |
+|---|---|---|
+| `tabWidth` | Number of spaces per indentation level | `2` |
+| `printWidth` | Line width before wrapping (`0` = no wrapping) | `0` (no wrapping) |
+| `singleQuote` | Prefer single quotes for newly generated values | `false` |
+
+Example:
+
+```json
+{
+  "plugins": ["prettier-plugin-taskfile"],
+  "tabWidth": 2,
+  "singleQuote": true
+}
+```
+
+> **Note:** `singleQuote` only affects the default quote style for newly generated values. Existing quotes are preserved to avoid changing YAML semantics (double quotes support escape sequences like `\n`, while single quotes do not).
 
 ### Editor Integration
 

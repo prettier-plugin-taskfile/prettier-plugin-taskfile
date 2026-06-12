@@ -54,9 +54,13 @@ export const plugin: Plugin = {
   },
   printers: {
     "taskfile-yaml": {
-      print: (path) => {
+      print: (path, options) => {
         try {
-          return printTaskfileDocument(path.getNode());
+          return printTaskfileDocument(path.getNode(), {
+            tabWidth: options.tabWidth,
+            printWidth: options.printWidth,
+            singleQuote: options.singleQuote,
+          });
         } catch (error) {
           console.error("Failed to format Taskfile:", error);
 

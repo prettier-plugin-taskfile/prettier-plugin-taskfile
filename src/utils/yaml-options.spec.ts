@@ -70,4 +70,40 @@ describe("getYamlOptions", () => {
 
     expect(options.defaultType).toBe("BLOCK_LITERAL");
   });
+
+  test("should apply tabWidth from prettier options", () => {
+    const options = getYamlOptions({ tabWidth: 4 });
+
+    expect(options.indent).toBe(4);
+  });
+
+  test("should apply printWidth from prettier options", () => {
+    const options = getYamlOptions({ printWidth: 80 });
+
+    expect(options.lineWidth).toBe(80);
+  });
+
+  test("should not apply printWidth when it is Infinity", () => {
+    const options = getYamlOptions({ printWidth: Infinity });
+
+    expect(options.lineWidth).toBe(0);
+  });
+
+  test("should apply singleQuote from prettier options", () => {
+    const options = getYamlOptions({ singleQuote: true });
+
+    expect(options.singleQuote).toBe(true);
+  });
+
+  test("should return defaults when prettier options are undefined", () => {
+    const options = getYamlOptions(undefined);
+
+    expect(options).toEqual(DEFAULT_YAML_OPTIONS);
+  });
+
+  test("should return defaults when prettier options are empty", () => {
+    const options = getYamlOptions({});
+
+    expect(options).toEqual(DEFAULT_YAML_OPTIONS);
+  });
 });

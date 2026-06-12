@@ -73,4 +73,5 @@ export interface YamlStringifyOptions {
   blockQuote?: boolean;
   flowLevel?: number;
   defaultType?: string;
+  singleQuote?: boolean;
 }
