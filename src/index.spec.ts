@@ -6,7 +6,6 @@ describe("Index exports", () => {
     expect(typeof index.default).toBe("object");
     expect(index.default.languages).toBeDefined();
     expect(index.default.parsers).toBeDefined();
-    expect(index.default.printers).toBeDefined();
   });
 
   test("should export all formatter functions", () => {

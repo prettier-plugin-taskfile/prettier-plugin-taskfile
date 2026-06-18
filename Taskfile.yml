@@ -93,9 +93,7 @@ tasks:
                 echo "Project: {{.PROJECT}}"
         version: '3'
         EOF
-      - prettier --write "{{.EXAMPLE_DIR}}/example-unformatted.yml"
-        --plugin=./{{.DIST_DIR}}/index.js
-        --output-path="{{.EXAMPLE_DIR}}/example-formatted.yml"
+      - prettier --write "{{.EXAMPLE_DIR}}/example-unformatted.yml" --plugin=./{{.DIST_DIR}}/index.js --output-path="{{.EXAMPLE_DIR}}/example-formatted.yml"
       - echo "Example Taskfiles created in {{.EXAMPLE_DIR}} directory"
 
   setup-dev:
