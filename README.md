@@ -281,6 +281,26 @@ The verification setup installs a checksum-pinned self-contained Dafny bundle
 locally on Linux x64, including its .NET runtime and Z3. No separate Lean, .NET,
 or Z3 installation is required. For other platforms see the verification guide.
 
+## CI action dependencies
+
+CI uses the official checkout, Node setup, and `go-task/setup-task` actions.
+The Task version and Linux archive checksum are fixed. Jobs have read-only
+repository permissions, and checkout does not persist credentials.
+
+Action commits and source repository identities are recorded in the native
+GitHub Actions lockfile at `.github/workflows/actions.lock`. Generate it with
+the official GitHub CLI extension whenever workflow action references change:
+
+```sh
+gh extension install github/gh-actions-lock
+gh actions-lock
+gh actions-lock --verify --fail-on-warning
+```
+
+Do not edit or reformat the generated lockfile manually. Dependabot checks
+GitHub Actions dependencies weekly and updates onboarded lockfile entries.
+The lockfile protects action-code resolution, not every CI build input.
+
 ## License
 
 MIT
