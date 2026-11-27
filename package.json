@@ -36,16 +36,16 @@
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.12.2",
+    "@types/node": "^24.13.1",
     "fast-check": "^4.11.0",
-    "jest": "^30.3.0",
-    "prettier-plugin-taskfile": "^1.0.1",
-    "ts-jest": "^29.4.9",
+    "jest": "^30.4.2",
+    "prettier-plugin-taskfile": "^1.2.1",
+    "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
   "dependencies": {
     "prettier": "^3.8.3",
-    "yaml": "^2.8.3"
+    "yaml": "^2.9.0"
   }
 }
