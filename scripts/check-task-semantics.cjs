@@ -181,7 +181,12 @@ for (const fixture of fixtures) {
         const result = spawnSync(
           "task",
           ["--offline", "--silent", "--taskfile", taskfile, "caller"],
-          { cwd: directory, encoding: "utf8", timeout: 10000 },
+          {
+            cwd: directory,
+            env: { PATH: process.env.PATH, HOME: directory },
+            encoding: "utf8",
+            timeout: 10000,
+          },
         );
         if (result.error) throw result.error;
         assert.equal(result.status, 0, result.stderr);
