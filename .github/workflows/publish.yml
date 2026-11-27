@@ -38,14 +38,18 @@ jobs:
       - name: Check staged publishing support
         run: npm stage publish --help
 
-      - name: Check release version
+      - name: Check release metadata
         id: version
         run: |
           node <<'NODE'
           const fs = require("node:fs");
-          const { version } = require("./package.json");
+          const { version, repository } = require("./package.json");
           if (process.env.GITHUB_REF_NAME !== `v${version}`) {
             throw new Error("The Git tag must match v<package.json version>.");
+          }
+          const expectedRepository = `https://github.com/${process.env.GITHUB_REPOSITORY}`;
+          if (repository?.url !== expectedRepository) {
+            throw new Error(`package.json repository.url must match ${expectedRepository}.`);
           }
           const tag = version.includes("-") ? "next" : "latest";
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `tag=${tag}\n`);
