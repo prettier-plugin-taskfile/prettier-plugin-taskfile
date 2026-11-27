@@ -1,4 +1,4 @@
-name: Publish to npm
+name: Stage npm release
 
 on:
   push:
@@ -35,6 +35,9 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
 
+      - name: Check staged publishing support
+        run: npm stage publish --help
+
       - name: Check release version
         id: version
         run: |
@@ -57,7 +60,7 @@ jobs:
       - name: Check compiled package exports
         run: npm run check:exports
 
-      - name: Publish to npm
+      - name: Stage package for approval
         env:
           NPM_DIST_TAG: ${{ steps.version.outputs.tag }}
-        run: npm publish --access public --provenance --tag "$NPM_DIST_TAG"
+        run: npm stage publish --access public --provenance --tag "$NPM_DIST_TAG"

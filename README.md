@@ -313,11 +313,13 @@ The lockfile protects action-code resolution, not every CI build input.
 
 Pushing a `v<version>` tag triggers `.github/workflows/publish.yml`. The workflow
 runs the existing CI checks, verifies that the tag matches `package.json`, builds
-the package, and publishes it to npm with provenance. Stable versions use the
+the package, and submits it for approval with `npm stage publish` and provenance.
+**The version is not publicly available until a maintainer approves it with
+2FA.** Stable versions use the
 `latest` npm dist-tag; prereleases (for example, `v1.4.0-beta.1`) use `next`.
 Creating a local tag alone does not publish anything.
 
-Before the first automated release, configure a
+Before the first staged release, configure a
 [Trusted Publisher](https://docs.npmjs.com/trusted-publishers/) in the npm package
 settings for `prettier-plugin-taskfile`:
 
@@ -326,9 +328,16 @@ settings for `prettier-plugin-taskfile`:
 - Repository: `prettier-plugin-taskfile`
 - Workflow filename: `publish.yml`
 - Environment name: leave blank
-- Allowed actions: enable direct publishing with `npm publish`
+- Allowed actions: allow `npm stage publish`; leave `Allow npm publish` unchecked
 
-No npm token or GitHub Actions secret is needed. A newly configured trusted
+`Allow npm dist-tag` is independent: it permits managing dist-tags, not direct
+publishing, and is not needed by this workflow. It may remain enabled if needed
+by another workflow. Staging instead of granting direct publishing follows
+[npm's recommended trust permissions](https://docs.npmjs.com/cli/v11/commands/npm-stage#best-practices).
+
+No npm token or GitHub Actions secret is needed. Staging requires npm 11.15.0
+or later and Node 22.14.0 or later; the workflow uses Node 24 and checks that
+`npm stage publish` is available before proceeding. A newly configured trusted
 publisher must complete its first successful publish within two days or it
 expires; configure it shortly before releasing.
 
@@ -338,9 +347,24 @@ git push
 git push origin v1.4.0
 ```
 
-Replace `1.4.0` with the new version. npm versions are immutable: use a new
-version and matching tag for each release, rather than repushing an already
-published version. `task publish` remains available for manual local publishing.
+After the workflow succeeds, review the version in the **Staged Packages** tab
+on npmjs.com and approve it with 2FA. Alternatively, use an interactive npm login:
+
+```sh
+npm stage list prettier-plugin-taskfile
+npm stage view <stage-id>
+npm stage approve <stage-id>
+```
+
+OIDC credentials cannot approve staged packages; approval is intentionally a
+human step, not another CI job. See [npm's staged publishing guide](https://docs.npmjs.com/staged-publishing/).
+
+Replace `1.4.0` with the new version. Published and staged versions share the same
+unique version constraint: do not resubmit an already staged version; approve
+the pending stage instead. Use a new version and matching tag for each release.
+Rerunning an old failed GitHub Actions run uses its original workflow, not later
+workflow fixes; push a new version tag containing the updated workflow instead.
+`task publish` remains available for manual local direct publishing.
 
 ## License
 
