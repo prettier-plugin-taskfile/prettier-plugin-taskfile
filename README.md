@@ -309,6 +309,39 @@ Do not edit or reformat the generated lockfile manually. Dependabot checks
 GitHub Actions dependencies weekly and updates onboarded lockfile entries.
 The lockfile protects action-code resolution, not every CI build input.
 
+## Publishing releases
+
+Pushing a `v<version>` tag triggers `.github/workflows/publish.yml`. The workflow
+runs the existing CI checks, verifies that the tag matches `package.json`, builds
+the package, and publishes it to npm with provenance. Stable versions use the
+`latest` npm dist-tag; prereleases (for example, `v1.4.0-beta.1`) use `next`.
+Creating a local tag alone does not publish anything.
+
+Before the first automated release, configure a
+[Trusted Publisher](https://docs.npmjs.com/trusted-publishers/) in the npm package
+settings for `prettier-plugin-taskfile`:
+
+- Provider: GitHub Actions
+- Organization or user: `prettier-plugin-taskfile`
+- Repository: `prettier-plugin-taskfile`
+- Workflow filename: `publish.yml`
+- Environment name: leave blank
+- Allowed actions: enable direct publishing with `npm publish`
+
+No npm token or GitHub Actions secret is needed. A newly configured trusted
+publisher must complete its first successful publish within two days or it
+expires; configure it shortly before releasing.
+
+```sh
+task release -- 1.4.0
+git push
+git push origin v1.4.0
+```
+
+Replace `1.4.0` with the new version. npm versions are immutable: use a new
+version and matching tag for each release, rather than repushing an already
+published version. `task publish` remains available for manual local publishing.
+
 ## License
 
 MIT

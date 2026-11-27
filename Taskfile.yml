@@ -120,4 +120,4 @@ tasks:
       - git commit -m "Release v{{.VERSION}}"
       - git tag -a v{{.VERSION}} -m "Release v{{.VERSION}}"
       - |
-        echo "Version {{.VERSION}} released! To publish, run: git push && git push --tags && task publish"
+        echo "Version {{.VERSION}} tagged! To publish via GitHub Actions, run: git push && git push origin v{{.VERSION}}"
