@@ -1,6 +1,22 @@
 import { formatTaskfile } from "./taskfile-formatter";
 
 describe("formatTaskfile", () => {
+  test("the object API can opt into local renaming with included tasks", () => {
+    const input = {
+      version: "3",
+      includes: { tools: "./tools.yml" },
+      tasks: {
+        build_app: { deps: ["tools:foreign_task"], cmds: ["echo local"] },
+      },
+    };
+    const result = formatTaskfile(input, {
+      taskfileAllowRenamesWithIncludes: true,
+    });
+    expect(result.tasks?.["build-app"]?.deps).toEqual(["tools:foreign_task"]);
+    expect(result.includes).toEqual(input.includes);
+    expect(input.tasks.build_app).toBeDefined();
+  });
+
   test("should handle null or undefined input", () => {
     expect(formatTaskfile(null as any)).toEqual({});
     expect(formatTaskfile(undefined as any)).toEqual({});

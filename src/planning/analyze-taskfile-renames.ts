@@ -244,11 +244,49 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
 
   inspectStructure(root);
   const includes = entry(root, "includes");
-  if (
+  const hasIncludes =
     includes !== undefined &&
-    (!yaml.isMap(includes) || includes.items.length > 0)
-  )
-    hazard("Included Taskfiles have external scopes; preserving names.");
+    (!yaml.isMap(includes) || includes.items.length > 0);
+  const includedNamespaces: string[] = [];
+  if (yaml.isMap(includes)) {
+    for (const pair of includes.items) {
+      const namespace = keyOf(pair);
+      const path = yaml.isMap(pair.value)
+        ? entry(pair.value, "taskfile")
+        : pair.value;
+      if (
+        !namespace ||
+        !yaml.isScalar(path) ||
+        typeof path.value !== "string"
+      ) {
+        hazard("Unsupported include definitions require preserving names.");
+        continue;
+      }
+      const flatten = yaml.isMap(pair.value)
+        ? entry(pair.value, "flatten")
+        : undefined;
+      if (yaml.isScalar(flatten) && flatten.value === true) continue;
+      includedNamespaces.push(namespace);
+      if (yaml.isMap(pair.value)) {
+        const aliases = entry(pair.value, "aliases");
+        if (aliases === undefined) continue;
+        if (!yaml.isSeq(aliases)) {
+          hazard("Unsupported include aliases require preserving names.");
+          continue;
+        }
+        for (const alias of aliases.items) {
+          if (
+            yaml.isScalar(alias) &&
+            typeof alias.value === "string" &&
+            alias.value.length > 0
+          )
+            includedNamespaces.push(alias.value);
+          else hazard("Unsupported include aliases require preserving names.");
+        }
+      }
+    }
+  } else if (includes !== undefined)
+    hazard("Non-map include definitions require preserving names.");
   defineVariables(entry(root, "vars"), "root");
   const tasks = entry(root, "tasks");
   if (tasks !== undefined && !yaml.isMap(tasks))
@@ -305,5 +343,7 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
     definitions: Object.freeze(definitions),
     references: Object.freeze(references),
     hazards: Object.freeze([...hazards]),
+    hasIncludes,
+    includedNamespaces: Object.freeze(includedNamespaces),
   });
 }

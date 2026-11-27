@@ -1,8 +1,32 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as yaml from "yaml";
 import { plugin, checkTaskfileFormatting, formatTaskfileText } from "./plugin";
 
 describe("Prettier Plugin", () => {
+  test("the printer forwards the default-false includes rename option", () => {
+    expect(plugin.options?.taskfileAllowRenamesWithIncludes).toEqual(
+      expect.objectContaining({ type: "boolean", default: false }),
+    );
+    const input =
+      "includes: {tools: ./tools.yml}\ntasks: {build_app: {deps: ['tools:foreign_task'], cmds: [echo]}}";
+    const print = (options: any) =>
+      plugin.printers!["taskfile-yaml"].print(
+        {
+          getNode: () =>
+            plugin.parsers!["taskfile-yaml"].parse(input, {} as any),
+        } as any,
+        options,
+        jest.fn(),
+      ) as string;
+    const output = print({ taskfileAllowRenamesWithIncludes: true });
+    expect(yaml.parse(output).tasks["build-app"].deps).toEqual([
+      "tools:foreign_task",
+    ]);
+    const defaultOutput = print({});
+    expect(yaml.parse(defaultOutput).tasks.build_app).toBeDefined();
+  });
+
   test("should have required plugin structure", () => {
     expect(plugin.languages).toBeDefined();
     expect(plugin.parsers).toBeDefined();

@@ -5,6 +5,11 @@ The production formatter does **not** import the generated JavaScript. Its
 analysis, YAML edits, reference discovery, and normalization implementations
 remain outside this proof.
 
+The `taskfileAllowRenamesWithIncludes` opt-in additionally accepts unchecked
+external scope. Included namespace recognition and unchanged external task
+references are not represented in the model's finite reference list. The model
+does not prove that opted-in renaming preserves whole-project Task semantics.
+
 ## Run
 
 On Linux x64, from the repository root:

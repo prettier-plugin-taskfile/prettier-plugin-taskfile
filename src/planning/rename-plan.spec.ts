@@ -2,6 +2,7 @@ import * as yaml from "yaml";
 import {
   formatTaskfileText,
   formatTaskfileTextWithDiagnostics,
+  checkTaskfileFormatting,
 } from "../api/format-taskfile-text";
 import { plugin } from "../plugin";
 import { analyzeTaskfileRenames } from "./analyze-taskfile-renames";
@@ -13,6 +14,84 @@ function formatted(input: string) {
 }
 
 describe("safe Taskfile rename planning", () => {
+  test("includes opt-in normalizes local names and leaves external namespaces and references intact", () => {
+    const input = `version: '3'
+includes:
+  tools_ns:
+    taskfile: ./tools.yml
+    aliases: [tools_alias]
+vars:
+  project_name: demo
+tasks:
+  build_project:
+    cmds: ['echo {{.project_name}}']
+  caller:
+    deps: [build_project, tools_ns:foreign_task, tools_alias]
+    cmds:
+      - task: ':tools_alias:foreign_task'`;
+    const before = yaml.parse(input);
+    expect(yaml.parse(formatTaskfileText(input))).toEqual(before);
+    expect(() =>
+      formatTaskfileText(input, { taskfileUnsafeRenames: "error" }),
+    ).toThrow("Unsafe Taskfile renames");
+
+    const options = {
+      taskfileAllowRenamesWithIncludes: true,
+      taskfileUnsafeRenames: "error" as const,
+    };
+    const result = formatTaskfileTextWithDiagnostics(input, options);
+    const obj = yaml.parse(result.text);
+    expect(obj.includes).toEqual(before.includes);
+    expect(obj.vars).toEqual({ PROJECT_NAME: "demo" });
+    expect(obj.tasks["build-project"].cmds).toEqual(["echo {{.PROJECT_NAME}}"]);
+    expect(obj.tasks.caller.deps).toEqual([
+      "build-project",
+      "tools_ns:foreign_task",
+      "tools_alias",
+    ]);
+    expect(obj.tasks.caller.cmds).toEqual([
+      { task: ":tools_alias:foreign_task" },
+    ]);
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({ code: "unchecked-includes" }),
+    ]);
+    expect(formatTaskfileText(result.text, options)).toBe(result.text);
+    expect(
+      formatTaskfileTextWithDiagnostics(result.text, options).diagnostics,
+    ).toEqual([]);
+    expect(checkTaskfileFormatting(result.text, options)).toBe(true);
+
+    const disabled = formatTaskfileTextWithDiagnostics(input, {
+      ...options,
+      taskfileNormalizeNames: false,
+    });
+    expect(yaml.parse(disabled.text)).toEqual(before);
+    expect(disabled.diagnostics).toEqual([]);
+  });
+
+  test.each([
+    "includes: [./tools.yml]\ntasks: {build_app: {cmds: [echo]}}",
+    "includes: {tools: {taskfile: 123}}\ntasks: {build_app: {cmds: [echo]}}",
+    "includes: {tools: {taskfile: ./tools.yml, aliases: [123]}}\ntasks: {build_app: {cmds: [echo]}}",
+    "includes: {tools: ./tools.yml}\ntasks: {build_app: {}, build-app: {}}",
+    "includes: {tools: ./tools.yml}\ntasks: {build_app: {deps: [unknown:foreign_task]}}",
+    "includes: {tools: ./tools.yml}\ntasks: {'tools:build_app': {}, caller: {deps: ['tools:build-app']}}",
+    "includes: {tools: {taskfile: ./tools.yml, flatten: true}}\ntasks: {build_app: {deps: [foreign_task]}}",
+  ])("includes opt-in retains other safety guards: %s", (input) => {
+    const options = { taskfileAllowRenamesWithIncludes: true };
+    const result = formatTaskfileTextWithDiagnostics(input, options);
+    expect(yaml.parse(result.text)).toEqual(yaml.parse(input));
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "unsafe-rename" }),
+    );
+    expect(() =>
+      formatTaskfileText(input, {
+        ...options,
+        taskfileUnsafeRenames: "error",
+      }),
+    ).toThrow("Unsafe Taskfile renames");
+  });
+
   test("updates the official styleguide variable example without replacing shell text or comments", () => {
     const result = formatTaskfileTextWithDiagnostics(`version: '3'
 vars:

@@ -4,12 +4,48 @@ const { mkdtempSync, writeFileSync, rmSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const { join } = require("node:path");
 const { test } = require("node:test");
-const {
-  formatTaskfileText,
-  formatTaskfileTextWithDiagnostics,
-} = require("../dist/index.js");
+const prettier = require("prettier");
+const yaml = require("yaml");
+const plugin = require("../dist/index.js");
+const { formatTaskfileText, formatTaskfileTextWithDiagnostics } = plugin;
 
 const fixtures = [
+  {
+    name: "includes opt-in renames local definitions while external tasks and namespace aliases remain callable",
+    options: {
+      taskfileAllowRenamesWithIncludes: true,
+      taskfileUnsafeRenames: "error",
+    },
+    expected: "local\nexternal\nexternal\nexternal-default\n",
+    renamedTask: "build-project",
+    includedTaskfiles: {
+      "tools.yml": `version: "3"
+tasks:
+  default:
+    cmds: [echo external-default]
+  foreign_task:
+    cmds: [echo external]
+`,
+    },
+    text: `version: "3"
+includes:
+  tools_ns:
+    taskfile: ./tools.yml
+    aliases: [tools_alias]
+vars:
+  project_name: local
+tasks:
+  build_project:
+    cmds:
+      - echo "{{.project_name}}"
+  caller:
+    cmds:
+      - task: build_project
+      - task: tools_ns:foreign_task
+      - task: tools_alias:foreign_task
+      - task: tools_alias
+`,
+  },
   {
     name: "task calls and dependencies retain the rendered command values",
     text: `version: "3"
@@ -175,6 +211,10 @@ for (const fixture of fixtures) {
     const directory = mkdtempSync(join(tmpdir(), "taskfile-semantics-"));
     try {
       const taskfile = join(directory, "Taskfile.yml");
+      for (const [name, text] of Object.entries(
+        fixture.includedTaskfiles ?? {},
+      ))
+        writeFileSync(join(directory, name), text);
 
       const run = (text) => {
         writeFileSync(taskfile, text);
@@ -196,14 +236,42 @@ for (const fixture of fixtures) {
       if (fixture.expected !== undefined)
         assert.equal(before, fixture.expected);
       if (fixture.preserveNames) {
-        const result = formatTaskfileTextWithDiagnostics(fixture.text);
+        const result = formatTaskfileTextWithDiagnostics(
+          fixture.text,
+          fixture.options,
+        );
         assert.ok(result.diagnostics.length > 0);
         assert.ok(result.text.includes("task: payload"));
         assert.ok(result.text.includes("root_dir: payload-dir"));
       }
-      assert.equal(run(formatTaskfileText(fixture.text)), before);
+      const formatted = formatTaskfileText(fixture.text, fixture.options);
+      if (fixture.renamedTask) {
+        assert.ok(yaml.parse(formatted).tasks[fixture.renamedTask]);
+        assert.equal(
+          formatTaskfileTextWithDiagnostics(fixture.text, fixture.options)
+            .diagnostics[0].code,
+          "unchecked-includes",
+        );
+      }
+      assert.equal(run(formatted), before);
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
   });
 }
+
+test("Prettier accepts and forwards the includes rename option", async () => {
+  const text =
+    "includes: {tools: ./tools.yml}\ntasks: {build_app: {deps: ['tools:foreign_task'], cmds: [echo]}}";
+  const options = { parser: "taskfile-yaml", plugins: [plugin] };
+  const formatted = await prettier.format(text, {
+    ...options,
+    taskfileAllowRenamesWithIncludes: true,
+    taskfileUnsafeRenames: "error",
+  });
+  assert.deepEqual(yaml.parse(formatted).tasks["build-app"].deps, [
+    "tools:foreign_task",
+  ]);
+  const preserved = await prettier.format(text, options);
+  assert.ok(yaml.parse(preserved).tasks.build_app);
+});

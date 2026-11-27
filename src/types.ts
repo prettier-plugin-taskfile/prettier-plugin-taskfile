@@ -4,11 +4,12 @@
 
 export interface TaskfileFormattingOptions {
   taskfileNormalizeNames?: boolean;
+  taskfileAllowRenamesWithIncludes?: boolean;
   taskfileUnsafeRenames?: "preserve" | "error";
 }
 
 export interface TaskfileDiagnostic {
-  code: "unsafe-rename" | "unsafe-ordering";
+  code: "unsafe-rename" | "unsafe-ordering" | "unchecked-includes";
   message: string;
 }
 

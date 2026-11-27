@@ -21,6 +21,13 @@ export const plugin: Plugin = {
       description:
         "Normalize Taskfile names and recognized references when safe.",
     },
+    taskfileAllowRenamesWithIncludes: {
+      type: "boolean",
+      category: "Taskfile",
+      default: false,
+      description:
+        "Allow local renaming with includes without checking or rewriting external Taskfiles.",
+    },
     taskfileUnsafeRenames: {
       type: "choice",
       category: "Taskfile",

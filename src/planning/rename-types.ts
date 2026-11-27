@@ -24,6 +24,8 @@ export interface RenameAnalysis {
   readonly definitions: readonly NameDefinition[];
   readonly references: readonly NameReference[];
   readonly hazards: readonly string[];
+  readonly hasIncludes: boolean;
+  readonly includedNamespaces: readonly string[];
 }
 
 export interface ScalarRename {

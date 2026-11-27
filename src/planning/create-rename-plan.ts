@@ -27,6 +27,8 @@ export function createRenamePlan(
   )
     return Object.freeze({ edits: empty, diagnostics: empty });
   const hazards = new Set(analysis.hazards);
+  if (analysis.hasIncludes && options.taskfileAllowRenamesWithIncludes !== true)
+    hazards.add("Included Taskfiles have external scopes; preserving names.");
   const changedTaskNames = analysis.definitions.some(
     (definition) =>
       definition.kind === "task" && target(definition) !== definition.name,
@@ -124,7 +126,16 @@ export function createRenamePlan(
       hazards.add(
         `Root reference "${reference.name}" may depend on task-local variables; preserving names.`,
       );
-    if (!definition && reference.kind === "task")
+    const includedReference =
+      options.taskfileAllowRenamesWithIncludes === true &&
+      reference.kind === "task" &&
+      analysis.includedNamespaces.some(
+        (namespace) =>
+          reference.name === namespace ||
+          (reference.name.startsWith(`${namespace}:`) &&
+            reference.name.length > namespace.length + 1),
+      );
+    if (!definition && reference.kind === "task" && !includedReference)
       hazards.add(
         `Unresolved task reference "${reference.name}"; preserving names.`,
       );
@@ -166,6 +177,15 @@ export function createRenamePlan(
   }
   return Object.freeze({
     edits: Object.freeze(edits.map((edit) => Object.freeze(edit))),
-    diagnostics: empty,
+    diagnostics:
+      analysis.hasIncludes && options.taskfileAllowRenamesWithIncludes === true
+        ? Object.freeze([
+            Object.freeze({
+              code: "unchecked-includes" as const,
+              message:
+                "Local names were normalized without checking or updating included Taskfiles; external references and variable bindings are not guaranteed.",
+            }),
+          ])
+        : empty,
   });
 }

@@ -61,10 +61,11 @@ This plugin works with all editor integrations that use Prettier. Once installed
 
 ### Safety options
 
-| Option                   | Default      | Behavior                                                                                                                                 |
-| ------------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `taskfileNormalizeNames` | `true`       | Plan and apply names and recognized references together. Set `false` for layout/template-spacing changes without renaming.               |
-| `taskfileUnsafeRenames`  | `"preserve"` | Preserve all names when safe renaming cannot be established. Set `"error"` to fail instead. Ignored when name normalization is disabled. |
+| Option                             | Default      | Behavior                                                                                                                                 |
+| ---------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `taskfileNormalizeNames`           | `true`       | Plan and apply names and recognized references together. Set `false` for layout/template-spacing changes without renaming.               |
+| `taskfileAllowRenamesWithIncludes` | `false`      | Allow local renaming despite includes, without checking or rewriting external Taskfiles. Other safety checks still apply.                |
+| `taskfileUnsafeRenames`            | `"preserve"` | Preserve all names when safe renaming cannot be established. Set `"error"` to fail instead. Ignored when name normalization is disabled. |
 
 For example, opt out of renaming to keep public task names and externally supplied
 variable names stable:
@@ -76,12 +77,40 @@ variable names stable:
 }
 ```
 
+To normalize local names even when this file includes other Taskfiles:
+
+```json
+{
+  "plugins": ["prettier-plugin-taskfile"],
+  "taskfileAllowRenamesWithIncludes": true
+}
+```
+
+This opt-in leaves include namespace keys, namespace aliases, included files,
+and recognized external task references unchanged. Static references such as
+`tools:build_image` and `:tools:build_image` are recognized by the declared
+namespace or namespace alias; the external task's existence is not checked.
+Calls using just the namespace or alias (an included default task) are also
+left unchanged.
+Non-map or unsupported include declarations, unresolved references, and other
+existing safety guards still preserve all names or fail in `"error"` mode.
+Unqualified references to flattened includes are not resolved: they must name
+a known local task to pass the existing reference check.
+
+Renaming with this option produces an `unchecked-includes` diagnostic because
+external callers and variable bindings might be affected. Included files are
+neither loaded nor updated, so whole-project equivalence is **not guaranteed**.
+The diagnostic is not an error, even in `"error"` mode, and Prettier does not
+print it automatically. If names are already normalized, or
+`taskfileNormalizeNames` is `false`, no such diagnostic is emitted.
+
 Renaming is planned before any edits. The planner checks same-scope collisions,
 variable scope capture, and recognized task references. Root and task-local
 `vars`, simple `{{.variable}}` references, and static `deps`/command task calls
 are supported. Namespace colons are preserved.
 
-When renaming would be needed, nonempty `includes`, YAML anchors/aliases/merges,
+When renaming would be needed, nonempty `includes` (unless explicitly allowed),
+YAML anchors/aliases/merges,
 task aliases, call-site variable overrides, complex/dynamic templates, shell
 expressions (`sh`), shell Task invocations (including quoted/escaped forms),
 dynamic shell expansions, or other unsupported forms conservatively preserve **all**
