@@ -37,6 +37,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Check compiled package exports
+        run: npm run check:exports
+
       - name: Check dependency direction
         run: npm run check:dependencies
 

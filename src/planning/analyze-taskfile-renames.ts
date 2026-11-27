@@ -1,26 +1,12 @@
 import * as yaml from "yaml";
 import { NameDefinition, NameReference, RenameAnalysis } from "./rename-types";
+import { createNameDefinitionIndex } from "./name-definition-index";
 import { hasTemplatedShellCommand } from "../rules/has-templated-shell-command";
-
-const rootTemplateFields = new Set(["vars", "env", "dir"]);
-const taskTemplateFields = new Set([
-  "vars",
-  "env",
-  "cmds",
-  "cmd",
-  "defer",
-  "desc",
-  "summary",
-  "dir",
-  "sources",
-  "generates",
-  "status",
-  "preconditions",
-  "if",
-  "msg",
-  "label",
-  "prefix",
-]);
+import {
+  classifyTaskfileTemplateField,
+  classifyTaskfileTemplateSequence,
+  TaskfileTemplateContext,
+} from "../rules/taskfile-template-context";
 
 function keyOf(pair: yaml.Pair): string | undefined {
   return yaml.isScalar(pair.key) && typeof pair.key.value === "string"
@@ -118,9 +104,10 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
   function templates(
     node: unknown,
     scope: string,
-    recognized: boolean,
-    variableMap = false,
-    variableValue = false,
+    classification: {
+      readonly recognized: boolean;
+      readonly context: TaskfileTemplateContext;
+    },
     definitionLimit?: number,
   ): void {
     if (yaml.isNode(node))
@@ -128,7 +115,7 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
     if (yaml.isScalar(node) && typeof node.value === "string") {
       const text = node.value;
       if (!text.includes("{{") && !text.includes("}}")) return;
-      if (!recognized)
+      if (!classification.recognized)
         hazard("Templates in unknown fields require preserving names.");
       let offset = 0;
       const actions = /\{\{([\s\S]*?)\}\}/g;
@@ -165,32 +152,39 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
         hazard("Malformed templates require preserving names.");
     } else if (yaml.isMap(node)) {
       for (const pair of node.items) {
-        templates(pair.key, scope, false);
+        templates(pair.key, scope, {
+          recognized: false,
+          context: { kind: "task" },
+        });
         const key = keyOf(pair) ?? "";
+        const field = classifyTaskfileTemplateField(
+          key,
+          classification.context,
+        );
         templates(
           pair.value,
           scope,
-          recognized &&
-            (variableMap ||
-              (!variableValue && taskTemplateFields.has(key)) ||
-              key === "sh" ||
-              key === "ref"),
-          key === "vars" || key === "env",
-          variableMap,
+          {
+            ...field,
+            recognized: classification.recognized && field.recognized,
+          },
           definitionLimit,
         );
       }
-    } else if (yaml.isSeq(node))
+    } else if (yaml.isSeq(node)) {
+      const sequence = classifyTaskfileTemplateSequence(classification.context);
       node.items.forEach((item) =>
         templates(
           item,
           scope,
-          recognized && !variableValue,
-          false,
-          variableValue,
+          {
+            ...sequence,
+            recognized: classification.recognized && sequence.recognized,
+          },
           definitionLimit,
         ),
       );
+    }
   }
 
   function taskReference(node: unknown): void {
@@ -321,16 +315,21 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
           templates(
             field.value,
             scope,
-            taskTemplateFields.has(key),
-            key === "vars" || key === "env",
+            classifyTaskfileTemplateField(key, { kind: "task-definition" }),
           );
         }
       } else if (yaml.isSeq(pair.value)) {
         calls(pair.value, false);
-        templates(pair.value, scope, true);
+        templates(pair.value, scope, {
+          recognized: true,
+          context: { kind: "task" },
+        });
       } else {
         call(pair.value, false);
-        templates(pair.value, scope, true);
+        templates(pair.value, scope, {
+          recognized: true,
+          context: { kind: "task" },
+        });
       }
     }
   }
@@ -340,31 +339,20 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
     templates(
       pair.value,
       "root",
-      rootTemplateFields.has(key),
-      key === "vars" || key === "env",
-      false,
+      classifyTaskfileTemplateField(key, { kind: "root" }),
       key === "env" ? 0 : undefined,
     );
   }
+
+  const definitionIndex = createNameDefinitionIndex(definitions);
 
   function scalarValue(
     reference: NameReference,
     scope: string,
     seen: Set<yaml.Scalar>,
   ): string | undefined {
-    const definition =
-      definitions.find(
-        (item) =>
-          item.kind === "variable" &&
-          item.scope === scope &&
-          item.name === reference.name,
-      ) ??
-      definitions.find(
-        (item) =>
-          item.kind === "variable" &&
-          item.scope === "root" &&
-          item.name === reference.name,
-      );
+    const resolved = definitionIndex.resolve("variable", reference.name, scope);
+    const definition = resolved?.definition;
     if (!definition) {
       const environmentOverride = [
         environments.get(scope),
@@ -381,8 +369,9 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
     }
     if (
       seen.has(definition.node) ||
-      (reference.definitionLimit !== undefined &&
-        definitions.indexOf(definition) >= reference.definitionLimit)
+      (resolved !== undefined &&
+        reference.definitionLimit !== undefined &&
+        resolved.position >= reference.definitionLimit)
     )
       return undefined;
     const value = variableValues.get(definition.node);

@@ -1,5 +1,6 @@
 import * as yaml from "yaml";
 import { formatTaskfileText } from "../api/format-taskfile-text";
+import { formatFlowCollectionPadding } from "./flow-collection-padding";
 
 describe("single-line flow collection padding", () => {
   const input = `version: "3"
@@ -65,5 +66,18 @@ vars:
     expect(output).toContain("{nested: [one, two]}");
     expect(yaml.parse(output)).toEqual(yaml.parse(source));
     expect(formatTaskfileText(output, { bracketSpacing: false })).toBe(output);
+  });
+
+  test("standalone padding preserves invalid YAML without editing valid collections", () => {
+    const invalid = `vars:
+  LIST: [ one, two ]
+  OBJECT: { key: value }
+tasks:
+  broken: [ unfinished
+`;
+    expect(formatFlowCollectionPadding(invalid)).toBe(invalid);
+    expect(
+      formatFlowCollectionPadding(invalid, { bracketSpacing: false }),
+    ).toBe(invalid);
   });
 });

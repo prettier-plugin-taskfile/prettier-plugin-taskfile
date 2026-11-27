@@ -1,43 +1,19 @@
-import { isMap, isNode, isScalar, parseDocument, visit, YAMLMap } from "yaml";
+import { isMap, isNode, isScalar, YAMLMap } from "yaml";
 import { isTaskLikeSection } from "../rules/is-task-like-section";
+import { applyRenderEdits, RenderEdit } from "./apply-render-edits";
+import { SerializedYamlContext } from "./serialized-yaml-context";
 
 export function addEmptyLines(yamlStr: string): string {
-  const document = parseDocument(yamlStr, { keepSourceTokens: true });
+  const context = new SerializedYamlContext(yamlStr);
+  return applyRenderEdits(yamlStr, planEmptyLines(context));
+}
+
+export function planEmptyLines(context: SerializedYamlContext): RenderEdit[] {
+  const { document, lines, lineOffsets: offsets } = context;
   if (document.errors.length > 0 || !isMap(document.contents)) {
-    return yamlStr;
+    return [];
   }
 
-  const lines = yamlStr.split("\n");
-  const offsets: number[] = [];
-  let offset = 0;
-  for (const line of lines) {
-    offsets.push(offset);
-    offset += line.length + 1;
-  }
-
-  const scalarRanges: [number, number][] = [];
-  const keepChompRanges: [number, number][] = [];
-  visit(document, {
-    Scalar(_key, scalar) {
-      if (!scalar.range) return;
-      const range: [number, number] = [scalar.range[0], scalar.range[1]];
-      scalarRanges.push(range);
-      if (
-        scalar.srcToken?.type === "block-scalar" &&
-        scalar.srcToken.props.some(
-          (token) =>
-            token.type === "block-scalar-header" && token.source.includes("+"),
-        )
-      ) {
-        keepChompRanges.push(range);
-      }
-    },
-  });
-
-  const insideScalar = (line: number): boolean =>
-    scalarRanges.some(
-      ([start, end]) => offsets[line] > start && offsets[line] < end,
-    );
   const insertBefore = new Set<number>();
 
   const separatePairs = (map: YAMLMap): void => {
@@ -45,17 +21,13 @@ export function addEmptyLines(yamlStr: string): string {
     for (const pair of map.items.slice(1)) {
       if (!isNode(pair.key) || !pair.key.range) continue;
       const keyOffset = pair.key.range[0];
-      let line = offsets.findIndex(
-        (start, index) =>
-          start <= keyOffset &&
-          (index === offsets.length - 1 || offsets[index + 1] > keyOffset),
-      );
-      if (line < 1 || insideScalar(line)) continue;
+      let line = context.lineAt(keyOffset);
+      if (line < 1 || context.insideScalar(line)) continue;
 
       // Keep comments attached to the section or task they describe.
       while (
         line > 0 &&
-        !insideScalar(line - 1) &&
+        !context.insideScalar(line - 1) &&
         (/^\s*#/.test(lines[line - 1]) || lines[line - 1].trim() === "")
       ) {
         line--;
@@ -68,15 +40,7 @@ export function addEmptyLines(yamlStr: string): string {
         continue;
       }
       // A blank line immediately after |+ or >+ becomes scalar content.
-      if (
-        keepChompRanges.some(
-          ([start, end]) =>
-            offsets[line - 1] + lines[line - 1].length >= start &&
-            offsets[line] <= end,
-        )
-      ) {
-        continue;
-      }
+      if (context.followsKeepChomp(line)) continue;
       insertBefore.add(line);
     }
   };
@@ -95,18 +59,21 @@ export function addEmptyLines(yamlStr: string): string {
     }
   }
 
-  const result: string[] = [];
+  const edits: RenderEdit[] = [];
+  let previousLine: string | undefined;
   for (let line = 0; line < lines.length; line++) {
     if (
       lines[line].trim() === "" &&
-      !insideScalar(line) &&
-      (result.length === 0 || result[result.length - 1].trim() === "") &&
+      !context.insideScalar(line) &&
+      (previousLine === undefined || previousLine.trim() === "") &&
       line !== lines.length - 1
     ) {
+      edits.push({ start: offsets[line], end: offsets[line + 1] });
       continue;
     }
-    if (insertBefore.has(line)) result.push("");
-    result.push(lines[line]);
+    if (insertBefore.has(line))
+      edits.push({ start: offsets[line], text: "\n" });
+    previousLine = lines[line];
   }
-  return result.join("\n");
+  return edits;
 }

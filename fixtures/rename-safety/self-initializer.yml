@@ -1,0 +1,9 @@
+version: "3"
+env:
+  foo: hello
+vars:
+  foo: "{{.foo}}"
+tasks:
+  caller:
+    cmds:
+      - echo "{{.foo}}"

@@ -1,13 +1,7 @@
-import { normalizeTaskName } from "../rules/normalize-task-name";
-import { normalizeVariableName } from "../rules/normalize-variable-name";
 import { isTaskSpecialVariable } from "../rules/task-special-variables";
 import { TaskfileFormattingOptions } from "../types";
-import {
-  NameDefinition,
-  RenameAnalysis,
-  RenamePlan,
-  ScalarRename,
-} from "./rename-types";
+import { createNameDefinitionIndex } from "./name-definition-index";
+import { RenameAnalysis, RenamePlan, ScalarRename } from "./rename-types";
 
 export function createRenamePlan(
   analysis: RenameAnalysis,
@@ -16,73 +10,57 @@ export function createRenamePlan(
   const empty = Object.freeze([]);
   if (options.taskfileNormalizeNames === false)
     return Object.freeze({ edits: empty, diagnostics: empty });
-  const target = (definition: NameDefinition) =>
-    definition.kind === "task"
-      ? normalizeTaskName(definition.name)
-      : normalizeVariableName(definition.name);
+  const index = createNameDefinitionIndex(analysis.definitions);
   if (
-    !analysis.definitions.some(
-      (definition) => target(definition) !== definition.name,
+    !index.entries.some(
+      ({ definition, normalizedName }) => normalizedName !== definition.name,
     )
   )
     return Object.freeze({ edits: empty, diagnostics: empty });
   const hazards = new Set(analysis.hazards);
   if (analysis.hasIncludes && options.taskfileAllowRenamesWithIncludes !== true)
     hazards.add("Included Taskfiles have external scopes; preserving names.");
-  const changedTaskNames = analysis.definitions.some(
-    (definition) =>
-      definition.kind === "task" && target(definition) !== definition.name,
+  const changedTaskNames = index.entries.some(
+    ({ definition, normalizedName }) =>
+      definition.kind === "task" && normalizedName !== definition.name,
   );
-  const occupied = new Map<string, NameDefinition>();
-  for (const definition of analysis.definitions) {
+  for (const {
+    definition,
+    normalizedName,
+    normalizedCollision,
+  } of index.entries) {
     if (
       definition.kind === "variable" &&
-      target(definition) !== definition.name &&
-      isTaskSpecialVariable(target(definition))
+      normalizedName !== definition.name &&
+      isTaskSpecialVariable(normalizedName)
     )
       hazards.add(
-        `Variable "${definition.name}" would become Task special variable "${target(definition)}"; preserving names.`,
+        `Variable "${definition.name}" would become Task special variable "${normalizedName}"; preserving names.`,
       );
-    const key = `${definition.kind}/${definition.scope}/${target(definition)}`;
-    if (occupied.has(key))
-      hazards.add(
-        `Name collision at "${target(definition)}"; preserving names.`,
-      );
-    occupied.set(key, definition);
+    if (normalizedCollision)
+      hazards.add(`Name collision at "${normalizedName}"; preserving names.`);
     if (definition.kind === "variable" && definition.scope !== "root") {
-      const root = analysis.definitions.find(
-        (other) =>
-          other.kind === "variable" &&
-          other.scope === "root" &&
-          target(other) === target(definition),
-      );
+      const root = index.lookup(
+        "variable",
+        normalizedName,
+        "root",
+        "normalized",
+      )?.definition;
       if (root && root.name !== definition.name)
         hazards.add(
           `Variable "${definition.name}" could shadow "${root.name}" after normalization; preserving names.`,
         );
     }
   }
-  const resolve = (
-    kind: string,
-    name: string,
-    scope: string,
-    normalized: boolean,
-  ) =>
-    analysis.definitions.find(
-      (d) =>
-        d.kind === kind &&
-        d.scope === scope &&
-        (normalized ? target(d) : d.name) === name,
-    ) ??
-    analysis.definitions.find(
-      (d) =>
-        d.kind === kind &&
-        d.scope === "root" &&
-        (normalized ? target(d) : d.name) === name,
-    );
-  const edits: ScalarRename[] = analysis.definitions
-    .filter((d) => d.name !== target(d))
-    .map((d) => ({ node: d.node, from: d.name, to: target(d) }));
+  const edits: ScalarRename[] = index.entries
+    .filter(
+      ({ definition, normalizedName }) => definition.name !== normalizedName,
+    )
+    .map(({ definition, normalizedName }) => ({
+      node: definition.node,
+      from: definition.name,
+      to: normalizedName,
+    }));
   const replacements = new Map<
     ScalarRename["node"],
     { from: string; parts: { start: number; end: number; to: string }[] }
@@ -96,17 +74,17 @@ export function createRenamePlan(
       hazards.add(
         `Special variable "${reference.name}" can observe renamed tasks; preserving names.`,
       );
-    const definition = resolve(
+    const resolved = index.resolve(
       reference.kind,
       reference.name,
       reference.scope,
-      false,
     );
+    const definition = resolved?.definition;
     if (
-      definition &&
+      resolved &&
       reference.definitionLimit !== undefined &&
-      analysis.definitions.indexOf(definition) >= reference.definitionLimit &&
-      target(definition) !== definition.name
+      resolved.position >= reference.definitionLimit &&
+      resolved.normalizedName !== resolved.definition.name
     )
       hazards.add(
         `Initializer reference "${reference.name}" may read an earlier external binding; preserving names.`,
@@ -115,13 +93,7 @@ export function createRenamePlan(
       !definition &&
       reference.kind === "variable" &&
       reference.scope === "root" &&
-      analysis.definitions.some(
-        (d) =>
-          d.kind === "variable" &&
-          d.scope !== "root" &&
-          d.name === reference.name &&
-          target(d) !== d.name,
-      )
+      index.hasRenamedLocalVariable(reference.name)
     )
       hazards.add(
         `Root reference "${reference.name}" may depend on task-local variables; preserving names.`,
@@ -139,8 +111,11 @@ export function createRenamePlan(
       hazards.add(
         `Unresolved task reference "${reference.name}"; preserving names.`,
       );
-    const renamed = definition ? target(definition) : reference.name;
-    if (resolve(reference.kind, renamed, reference.scope, true) !== definition)
+    const renamed = resolved ? resolved.normalizedName : reference.name;
+    if (
+      index.resolve(reference.kind, renamed, reference.scope, "normalized")
+        ?.definition !== definition
+    )
       hazards.add(
         `Reference "${reference.name}" would change scope; preserving names.`,
       );

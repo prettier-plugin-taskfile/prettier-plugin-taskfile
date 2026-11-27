@@ -1,4 +1,6 @@
 import * as yaml from "yaml";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   formatTaskfileText,
   formatTaskfileTextWithDiagnostics,
@@ -11,6 +13,13 @@ import { applyRenamePlan } from "./apply-rename-plan";
 
 function formatted(input: string) {
   return yaml.parse(formatTaskfileText(input));
+}
+
+function safetyFixture(name: string): string {
+  return readFileSync(
+    join(__dirname, "../../fixtures/rename-safety", `${name}.yml`),
+    "utf8",
+  );
 }
 
 describe("safe Taskfile rename planning", () => {
@@ -349,24 +358,15 @@ tasks:
   });
 
   test("preserves the environment of dynamic shell variables", () => {
-    const input = `version: '3'
-vars:
-  input: hello
-tasks:
-  caller:
-    vars:
-      result:
-        sh: 'echo "$input"'
-    cmds:
-      - echo "{{.result}}"`;
+    const input = safetyFixture("shell-environment");
     const result = formatTaskfileTextWithDiagnostics(input);
     expect(yaml.parse(result.text)).toEqual(yaml.parse(input));
     expect(result.diagnostics.length).toBeGreaterThan(0);
   });
 
   test.each([
-    "env: {foo: hello}\nvars: {foo: '{{.foo}}'}",
-    "env: {later: outer}\nvars: {before: '{{.later}}', later: inner}",
+    safetyFixture("self-initializer"),
+    safetyFixture("forward-initializer"),
     "vars: {foo: global}\ntasks: {caller: {vars: {foo: '{{.foo}}'}}}",
     "env: {out: '{{.foo}}'}\nvars: {foo: hello}",
   ])("preserves unavailable initializer bindings: %s", (input) => {
