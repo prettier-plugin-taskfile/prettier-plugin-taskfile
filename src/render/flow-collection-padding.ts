@@ -1,17 +1,27 @@
-import { isMap, parseDocument, visit } from "yaml";
+import { isMap, visit } from "yaml";
 import type { TaskfileFormattingOptions } from "../types";
+import { applyRenderEdits, RenderEdit } from "./apply-render-edits";
+import { SerializedYamlContext } from "./serialized-yaml-context";
 
 export function formatFlowCollectionPadding(
   text: string,
   options: TaskfileFormattingOptions = {},
 ): string {
+  const context = new SerializedYamlContext(text);
+  return applyRenderEdits(text, planFlowCollectionPadding(context, options));
+}
+
+export function planFlowCollectionPadding(
+  context: SerializedYamlContext,
+  options: TaskfileFormattingOptions = {},
+): RenderEdit[] {
   if (
     options.taskfileFlowSequencePadding === true &&
     options.bracketSpacing !== false
   )
-    return text;
-  const document = parseDocument(text, { keepSourceTokens: true });
-  if (document.errors.length > 0) return text;
+    return [];
+  const { document, text } = context;
+  if (document.errors.length > 0) return [];
   const removals = new Set<number>();
   visit(document, {
     Collection(_key, node) {
@@ -38,12 +48,5 @@ export function formatFlowCollectionPadding(
         if (text[offset] === " ") removals.add(offset);
     },
   });
-  const parts: string[] = [];
-  let start = 0;
-  for (const offset of [...removals].sort((a, b) => a - b)) {
-    parts.push(text.slice(start, offset));
-    start = offset + 1;
-  }
-  parts.push(text.slice(start));
-  return parts.join("");
+  return [...removals].map((start) => ({ start, end: start + 1 }));
 }
