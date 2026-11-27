@@ -9,30 +9,20 @@ describe("Index exports", () => {
     expect(index.default.printers).toBeDefined();
   });
 
-  test("should export all formatter functions", () => {
-    expect(index.sortTaskfileKeys).toBeDefined();
-    expect(index.uppercaseVariableNames).toBeDefined();
-    expect(index.kebabCaseTaskNames).toBeDefined();
-    expect(index.removeTemplateWhitespace).toBeDefined();
-    expect(index.processCommands).toBeDefined();
-    expect(index.formatTaskfile).toBeDefined();
-
-    // Test function types
-    expect(typeof index.sortTaskfileKeys).toBe("function");
-    expect(typeof index.uppercaseVariableNames).toBe("function");
-    expect(typeof index.kebabCaseTaskNames).toBe("function");
-    expect(typeof index.removeTemplateWhitespace).toBe("function");
-    expect(typeof index.processCommands).toBe("function");
-    expect(typeof index.formatTaskfile).toBe("function");
-  });
-
-  test("should export utility functions", () => {
-    expect(index.getYamlOptions).toBeDefined();
-    expect(index.addEmptyLines).toBeDefined();
-
-    // Test function types
-    expect(typeof index.getYamlOptions).toBe("function");
-    expect(typeof index.addEmptyLines).toBe("function");
+  test.each([
+    "sortTaskfileKeys",
+    "uppercaseVariableNames",
+    "kebabCaseTaskNames",
+    "removeTemplateWhitespace",
+    "processCommands",
+    "formatTaskfile",
+    "formatTaskfileText",
+    "formatTaskfileTextWithDiagnostics",
+    "checkTaskfileFormatting",
+    "getYamlOptions",
+    "addEmptyLines",
+  ] as const)("exports the public function %s", (name) => {
+    expect(typeof index[name]).toBe("function");
   });
 
   test("should be able to use exported functions", () => {
@@ -46,20 +36,6 @@ describe("Index exports", () => {
     expect(() => {
       index.formatTaskfile(testData);
     }).not.toThrow();
-  });
-
-  test("should maintain CommonJS compatibility", () => {
-    // Test that the default export works in CommonJS style
-    const plugin = index.default;
-    expect(plugin).toBeDefined();
-    expect(plugin.languages).toBeDefined();
-  });
-
-  test("should maintain ESM compatibility", () => {
-    // Test that named exports work in ESM style
-    const { formatTaskfile, sortTaskfileKeys } = index;
-    expect(formatTaskfile).toBeDefined();
-    expect(sortTaskfileKeys).toBeDefined();
   });
 
   test("exports the diagnostic API for preserved unsafe names", () => {
@@ -118,34 +94,5 @@ describe("Index exports", () => {
     const result = index.addEmptyLines(testYaml);
     expect(typeof result).toBe("string");
     expect(result).toContain("version:");
-  });
-
-  test("should set CommonJS module.exports properties correctly", () => {
-    // In this test environment, we're testing the imported module
-    // The CommonJS assignment is executed during import, so we test
-    // that the module can be used in a CommonJS context
-
-    // Test that the main plugin export is accessible
-    expect(index.default).toBeDefined();
-
-    // Test that all function exports are accessible
-    expect(index.sortTaskfileKeys).toBeDefined();
-    expect(index.uppercaseVariableNames).toBeDefined();
-    expect(index.kebabCaseTaskNames).toBeDefined();
-    expect(index.removeTemplateWhitespace).toBeDefined();
-    expect(index.processCommands).toBeDefined();
-    expect(index.formatTaskfile).toBeDefined();
-    expect(index.getYamlOptions).toBeDefined();
-    expect(index.addEmptyLines).toBeDefined();
-
-    // Test that they are actual functions
-    expect(typeof index.sortTaskfileKeys).toBe("function");
-    expect(typeof index.uppercaseVariableNames).toBe("function");
-    expect(typeof index.kebabCaseTaskNames).toBe("function");
-    expect(typeof index.removeTemplateWhitespace).toBe("function");
-    expect(typeof index.processCommands).toBe("function");
-    expect(typeof index.formatTaskfile).toBe("function");
-    expect(typeof index.getYamlOptions).toBe("function");
-    expect(typeof index.addEmptyLines).toBe("function");
   });
 });
