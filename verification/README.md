@@ -69,6 +69,8 @@ visible, and permits safe simultaneous swaps.
 constructs, shell environments, reserved names, and task-name observations.
 Declaration-time binding availability and template-derived shell executables
 are also analyzer inputs, not properties established by the finite model.
+Static expansion of shell arguments and their binding/syntax safety are likewise
+outside the model and covered by implementation regressions, not this proof.
 The proof checks what the application does with that flag, **not**
 whether TypeScript computes it correctly.
 

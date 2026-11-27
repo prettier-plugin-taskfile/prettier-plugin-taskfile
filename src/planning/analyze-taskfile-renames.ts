@@ -32,6 +32,9 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
   const definitions: NameDefinition[] = [];
   const references: NameReference[] = [];
   const initializerLimits = new Map<yaml.Node, number>();
+  const variableValues = new Map<yaml.Scalar, unknown>();
+  const environments = new Map<string, unknown>();
+  const shellTemplates = new Set<yaml.Scalar>();
   const hazards = new Set<string>();
   const hazard = (message: string) => hazards.add(message);
   const entry = (map: yaml.YAMLMap, name: string) =>
@@ -40,6 +43,7 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
   function shellInvocation(node: unknown): void {
     if (!yaml.isScalar(node) || typeof node.value !== "string") return;
     const command = node.value;
+    if (command.includes("{{")) shellTemplates.add(node);
     // Reject quoted/escaped spellings too; this is not a shell parser.
     const unquoted = command.replace(/\\\r?\n/g, "").replace(/['"\\]/g, "");
     if (/\btask\b/.test(unquoted) || /\{\{\s*\.TASK_EXE\s*\}\}/.test(command))
@@ -104,6 +108,7 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
         definitions.push(
           Object.freeze({ node: pair.key, name, kind: "variable", scope }),
         );
+        variableValues.set(pair.key, pair.value);
         if (yaml.isNode(pair.value))
           initializerLimits.set(pair.value, definitions.length - 1);
       }
@@ -287,6 +292,7 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
     }
   } else if (includes !== undefined)
     hazard("Non-map include definitions require preserving names.");
+  environments.set("root", entry(root, "env"));
   defineVariables(entry(root, "vars"), "root");
   const tasks = entry(root, "tasks");
   if (tasks !== undefined && !yaml.isMap(tasks))
@@ -302,6 +308,7 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
         hazard("Dynamic task names require preserving names.");
       const scope = `task:${name}`;
       if (yaml.isMap(pair.value)) {
+        environments.set(scope, entry(pair.value, "env"));
         defineVariables(entry(pair.value, "vars"), scope);
         if (entry(pair.value, "aliases") !== undefined)
           hazard("Task aliases require preserving names.");
@@ -338,6 +345,102 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
       false,
       key === "env" ? 0 : undefined,
     );
+  }
+
+  function scalarValue(
+    reference: NameReference,
+    scope: string,
+    seen: Set<yaml.Scalar>,
+  ): string | undefined {
+    const definition =
+      definitions.find(
+        (item) =>
+          item.kind === "variable" &&
+          item.scope === scope &&
+          item.name === reference.name,
+      ) ??
+      definitions.find(
+        (item) =>
+          item.kind === "variable" &&
+          item.scope === "root" &&
+          item.name === reference.name,
+      );
+    if (!definition) {
+      const environmentOverride = [
+        environments.get(scope),
+        environments.get("root"),
+      ].some(
+        (environment) =>
+          yaml.isMap(environment) &&
+          environment.items.some((pair) => keyOf(pair) === reference.name),
+      );
+      // Task's version is shell-inert; arbitrary external bindings are not.
+      return reference.name === "TASK_VERSION" && !environmentOverride
+        ? "0"
+        : undefined;
+    }
+    if (
+      seen.has(definition.node) ||
+      (reference.definitionLimit !== undefined &&
+        definitions.indexOf(definition) >= reference.definitionLimit)
+    )
+      return undefined;
+    const value = variableValues.get(definition.node);
+    if (!yaml.isScalar(value)) return undefined;
+    if (typeof value.value === "number" || typeof value.value === "boolean")
+      return String(value.value);
+    if (typeof value.value !== "string") return undefined;
+    const expanded = expandShellTemplate(
+      value,
+      definition.scope,
+      new Set([...seen, definition.node]),
+    );
+    return expanded !== undefined &&
+      !/[\\'"`$;&|<>()\r\n*?\[\]~{}]/.test(expanded)
+      ? expanded
+      : undefined;
+  }
+
+  function expandShellTemplate(
+    node: yaml.Scalar,
+    scope: string,
+    seen: Set<yaml.Scalar>,
+  ): string | undefined {
+    if (typeof node.value !== "string") return undefined;
+    let unknown = false;
+    const rendered = node.value.replace(
+      /\{\{\s*\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g,
+      (_action, name: string) => {
+        const reference = references.find(
+          (item) =>
+            item.kind === "variable" &&
+            item.node === node &&
+            item.name === name,
+        );
+        const value = reference && scalarValue(reference, scope, seen);
+        if (value === undefined) unknown = true;
+        return value ?? "";
+      },
+    );
+    return unknown || rendered.includes("{{") || rendered.includes("}}")
+      ? undefined
+      : rendered;
+  }
+
+  for (const node of shellTemplates) {
+    const scope =
+      references.find((reference) => reference.node === node)?.scope ?? "root";
+    const rendered = expandShellTemplate(node, scope, new Set());
+    if (
+      rendered === undefined ||
+      /\btask\b/.test(
+        rendered.replace(/\\\r?\n/g, "").replace(/['"\\]/g, ""),
+      ) ||
+      /[*?\[\]~{}]|\$(?:\(|\{|[A-Za-z_])|`/.test(rendered)
+    )
+      hazard(
+        "Shell template arguments require known shell-inert scalar bindings; preserving names.",
+      );
   }
   return Object.freeze({
     definitions: Object.freeze(definitions),

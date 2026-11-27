@@ -117,6 +117,7 @@ describe("formatTaskfile", () => {
   test("should preserve task properties while formatting", () => {
     const input = {
       version: "3",
+      vars: { PROJECT: "demo" },
       tasks: {
         complex_task: {
           desc: "A complex task",

@@ -193,6 +193,44 @@ tasks:
       - ${JSON.stringify(command)}
 `,
   })),
+  ...[
+    ["hello; task foo_bar", "echo {{.message}}", "hello\ntarget\n"],
+    ["$(task foo_bar)", 'echo "{{.message}}"', "target\n"],
+  ].map(([message, command, expected]) => ({
+    name: `interpolated argument values cannot hide task calls: ${message}`,
+    expected,
+    preservedTask: "foo_bar",
+    text: `version: "3"
+vars:
+  message: ${JSON.stringify(message)}
+tasks:
+  foo_bar:
+    cmds: [echo target]
+  caller:
+    cmds:
+      - ${JSON.stringify(command)}
+`,
+  })),
+  {
+    name: "safe scalar initializer chains retain root and task-local bindings",
+    expected: "local/root\n",
+    renamedTask: "foo-bar",
+    text: `version: "3"
+vars:
+  project: root
+  path: "{{.project}}"
+tasks:
+  foo_bar:
+    vars:
+      project: local
+      target: "{{.project}}/{{.path}}"
+    cmds:
+      - echo "{{.target}}"
+  caller:
+    cmds:
+      - task: foo_bar
+`,
+  },
   {
     name: "self-named initializers retain root environment bindings",
     expected: "hello\n",
@@ -276,11 +314,12 @@ for (const fixture of fixtures) {
       }
       if (fixture.renamedTask) {
         assert.ok(yaml.parse(formatted).tasks[fixture.renamedTask]);
-        assert.equal(
-          formatTaskfileTextWithDiagnostics(fixture.text, fixture.options)
-            .diagnostics[0].code,
-          "unchecked-includes",
-        );
+        if (fixture.includedTaskfiles)
+          assert.equal(
+            formatTaskfileTextWithDiagnostics(fixture.text, fixture.options)
+              .diagnostics[0].code,
+            "unchecked-includes",
+          );
       }
       assert.equal(run(formatted), before);
     } finally {

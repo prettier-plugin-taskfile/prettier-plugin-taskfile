@@ -291,6 +291,63 @@ tasks:
     expect(result.diagnostics).toEqual([]);
   });
 
+  test.each([
+    ["hello; task foo_bar", "echo {{.message}}"],
+    ["$(task foo_bar)", 'echo "{{.message}}"'],
+    ["task", "nohup {{.message}} foo_bar"],
+    ["ta?k", "nohup {{.message}} foo_bar"],
+  ])(
+    "preserves shell syntax introduced by argument values: %s",
+    (message, command) => {
+      const source = yaml.stringify({
+        version: "3",
+        vars: { message },
+        tasks: {
+          foo_bar: { cmds: ["echo target"] },
+          caller: { cmds: [command] },
+        },
+      });
+      const result = formatTaskfileTextWithDiagnostics(source);
+      expect(yaml.parse(result.text)).toEqual(yaml.parse(source));
+      expect(result.diagnostics).toContainEqual(
+        expect.objectContaining({ code: "unsafe-rename" }),
+      );
+      expect(() =>
+        formatTaskfileText(source, { taskfileUnsafeRenames: "error" }),
+      ).toThrow("Unsafe Taskfile renames");
+    },
+  );
+
+  test("resolves safe scalar initializer chains before checking shell arguments", () => {
+    const source = `vars:
+  first: hello
+  message: "{{.first}} world"
+tasks:
+  foo_bar:
+    cmds: ['echo "{{.message}}"']
+`;
+    const result = formatTaskfileTextWithDiagnostics(source);
+    expect(yaml.parse(result.text).tasks["foo-bar"].cmds).toEqual([
+      'echo "{{.MESSAGE}}"',
+    ]);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  test.each([
+    "tasks: {foo_bar: {cmds: ['echo {{.external}}']}}",
+    "env: {TASK_VERSION: '$(task foo_bar)'}\ntasks: {foo_bar: {cmds: ['echo {{.TASK_VERSION}}']}}",
+    "vars: {first: 'hello; task foo_bar', message: '{{.first}}'}\ntasks: {foo_bar: {cmds: ['echo {{.message}}']}}",
+  ])("preserves unknown or indirectly unsafe shell bindings: %s", (source) => {
+    const result = formatTaskfileTextWithDiagnostics(source);
+    expect(yaml.parse(result.text)).toEqual(yaml.parse(source));
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "unsafe-rename" }),
+    );
+    expect(() =>
+      formatTaskfileText(source, { taskfileUnsafeRenames: "error" }),
+    ).toThrow("Unsafe Taskfile renames");
+  });
+
   test("preserves the environment of dynamic shell variables", () => {
     const input = `version: '3'
 vars:

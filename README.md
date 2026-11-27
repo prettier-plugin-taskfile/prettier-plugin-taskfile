@@ -152,6 +152,11 @@ Template-derived shell executable names are also preserved, including after
 command separators and common shell wrappers. Commands combining templates
 with `<` or `>` conservatively preserve names, even when the characters appear
 inside quotes, because redirections can hide executable positions.
+Shell template arguments must resolve to known scalar `vars` bindings without
+shell syntax. Safe scalar initializer chains are supported; external bindings,
+collection-valued variables, shell metacharacters, and dynamically assembled
+Task invocations conservatively preserve names. Task's built-in `TASK_VERSION`
+is treated as shell-inert unless explicitly overridden.
 Variable initializer references
 to their own or later definitions are preserved when those names would change,
 rather than treating an earlier environment binding as the new variable.
