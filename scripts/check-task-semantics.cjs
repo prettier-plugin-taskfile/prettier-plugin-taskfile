@@ -4,7 +4,10 @@ const { mkdtempSync, writeFileSync, rmSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const { join } = require("node:path");
 const { test } = require("node:test");
-const { formatTaskfileText } = require("../dist/index.js");
+const {
+  formatTaskfileText,
+  formatTaskfileTextWithDiagnostics,
+} = require("../dist/index.js");
 
 const fixtures = [
   {
@@ -64,18 +67,73 @@ tasks:
       - echo '{{ printf "%s" .binary_name }}'
 `,
   },
+  {
+    name: "dynamic variables retain previously resolved shell environment values",
+    expected: "hello\n",
+    text: `version: "3"
+vars:
+  input: hello
+tasks:
+  caller:
+    vars:
+      result:
+        sh: 'echo "$input"'
+    cmds:
+      - echo "{{.result}}"
+`,
+  },
+  {
+    name: "user variables cannot be renamed into Task-owned special variables",
+    preserveNames: true,
+    expected: "payload/payload-dir\n",
+    text: `version: "3"
+vars:
+  task: payload
+  root_dir: payload-dir
+tasks:
+  caller:
+    cmds:
+      - echo "{{.task}}/{{.root_dir}}"
+`,
+  },
+  ...["TASK", "ALIAS"].map((name) => ({
+    name: `${name} observations retain the original task name`,
+    expected: "build_app\n",
+    text: `version: "3"
+tasks:
+  build_app:
+    cmds:
+      - echo "{{.${name}}}"
+  caller:
+    cmds:
+      - task: build_app
+`,
+  })),
+  ...["'task' foo_bar", '"task" foo_bar', "task</dev/null foo_bar"].map(
+    (command) => ({
+      name: `shell task calls remain resolvable: ${command}`,
+      expected: "target\n",
+      text: `version: "3"
+tasks:
+  foo_bar:
+    cmds:
+      - echo target
+  caller:
+    cmds:
+      - ${JSON.stringify(command)}
+`,
+    }),
+  ),
 ];
 
 for (const fixture of fixtures) {
   test(fixture.name, () => {
     const directory = mkdtempSync(join(tmpdir(), "taskfile-semantics-"));
     try {
-      const before = join(directory, "before.yml");
-      const after = join(directory, "after.yml");
-      writeFileSync(before, fixture.text);
-      writeFileSync(after, formatTaskfileText(fixture.text));
+      const taskfile = join(directory, "Taskfile.yml");
 
-      const run = (taskfile) => {
+      const run = (text) => {
+        writeFileSync(taskfile, text);
         const result = spawnSync(
           "task",
           ["--offline", "--silent", "--taskfile", taskfile, "caller"],
@@ -85,7 +143,16 @@ for (const fixture of fixtures) {
         assert.equal(result.status, 0, result.stderr);
         return result.stdout;
       };
-      assert.equal(run(after), run(before));
+      const before = run(fixture.text);
+      if (fixture.expected !== undefined)
+        assert.equal(before, fixture.expected);
+      if (fixture.preserveNames) {
+        const result = formatTaskfileTextWithDiagnostics(fixture.text);
+        assert.ok(result.diagnostics.length > 0);
+        assert.ok(result.text.includes("task: payload"));
+        assert.ok(result.text.includes("root_dir: payload-dir"));
+      }
+      assert.equal(run(formatTaskfileText(fixture.text)), before);
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }

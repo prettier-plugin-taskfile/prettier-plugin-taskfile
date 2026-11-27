@@ -1,5 +1,6 @@
 import { normalizeTaskName } from "../rules/normalize-task-name";
 import { normalizeVariableName } from "../rules/normalize-variable-name";
+import { isTaskSpecialVariable } from "../rules/task-special-variables";
 import { TaskfileFormattingOptions } from "../types";
 import {
   NameDefinition,
@@ -26,8 +27,20 @@ export function createRenamePlan(
   )
     return Object.freeze({ edits: empty, diagnostics: empty });
   const hazards = new Set(analysis.hazards);
+  const changedTaskNames = analysis.definitions.some(
+    (definition) =>
+      definition.kind === "task" && target(definition) !== definition.name,
+  );
   const occupied = new Map<string, NameDefinition>();
   for (const definition of analysis.definitions) {
+    if (
+      definition.kind === "variable" &&
+      target(definition) !== definition.name &&
+      isTaskSpecialVariable(target(definition))
+    )
+      hazards.add(
+        `Variable "${definition.name}" would become Task special variable "${target(definition)}"; preserving names.`,
+      );
     const key = `${definition.kind}/${definition.scope}/${target(definition)}`;
     if (occupied.has(key))
       hazards.add(
@@ -73,6 +86,14 @@ export function createRenamePlan(
     { from: string; parts: { start: number; end: number; to: string }[] }
   >();
   for (const reference of analysis.references) {
+    if (
+      changedTaskNames &&
+      reference.kind === "variable" &&
+      (reference.name === "TASK" || reference.name === "ALIAS")
+    )
+      hazards.add(
+        `Special variable "${reference.name}" can observe renamed tasks; preserving names.`,
+      );
     const definition = resolve(
       reference.kind,
       reference.name,

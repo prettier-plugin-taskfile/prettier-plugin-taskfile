@@ -160,6 +160,94 @@ tasks:
     ).toEqual(yaml.parse(input));
   });
 
+  test.each([
+    "'task' foo_bar",
+    '"task" foo_bar',
+    "task</dev/null foo_bar",
+    "t\\ask foo_bar",
+    'ta"sk" foo_bar',
+    "ta\\\nsk foo_bar",
+    "$runner foo_bar",
+    "$(printf task) foo_bar",
+    "{{.TASK_EXE}} foo_bar",
+  ])("preserves quoted, escaped, and redirected shell calls: %s", (command) => {
+    const input = yaml.stringify({
+      version: "3",
+      tasks: {
+        foo_bar: { cmds: ["echo target"] },
+        caller: { cmds: [command] },
+      },
+    });
+    const result = formatTaskfileTextWithDiagnostics(input);
+    expect(yaml.parse(result.text)).toEqual(yaml.parse(input));
+    expect(result.diagnostics.length).toBeGreaterThan(0);
+    expect(() =>
+      formatTaskfileText(input, { taskfileUnsafeRenames: "error" }),
+    ).toThrow("Unsafe Taskfile renames");
+  });
+
+  test("preserves the environment of dynamic shell variables", () => {
+    const input = `version: '3'
+vars:
+  input: hello
+tasks:
+  caller:
+    vars:
+      result:
+        sh: 'echo "$input"'
+    cmds:
+      - echo "{{.result}}"`;
+    const result = formatTaskfileTextWithDiagnostics(input);
+    expect(yaml.parse(result.text)).toEqual(yaml.parse(input));
+    expect(result.diagnostics.length).toBeGreaterThan(0);
+  });
+
+  test.each(["task", "alias", "root_dir", "cli_args", "item", "task_version"])(
+    "rejects normalization into Task-owned variable %s",
+    (name) => {
+      const input = yaml.stringify({
+        version: "3",
+        vars: { [name]: "payload" },
+        tasks: { caller: { cmds: [`echo "{{.${name}}}"`] } },
+      });
+      const result = formatTaskfileTextWithDiagnostics(input);
+      expect(yaml.parse(result.text)).toEqual(yaml.parse(input));
+      expect(result.diagnostics.length).toBeGreaterThan(0);
+      expect(() =>
+        formatTaskfileText(input, { taskfileUnsafeRenames: "error" }),
+      ).toThrow("Unsafe Taskfile renames");
+    },
+  );
+
+  test.each(["TASK", "ALIAS"])(
+    "preserves task names observed by the special variable %s",
+    (name) => {
+      const input = yaml.stringify({
+        version: "3",
+        tasks: { build_app: { cmds: [`echo "{{.${name}}}"`] } },
+      });
+      const result = formatTaskfileTextWithDiagnostics(input);
+      expect(yaml.parse(result.text)).toEqual(yaml.parse(input));
+      expect(result.diagnostics.length).toBeGreaterThan(0);
+    },
+  );
+
+  test("protects Task special names in task-local variable scopes too", () => {
+    const input =
+      "tasks: {caller: {vars: {task: payload}, cmds: ['echo {{.task}}']}}";
+    const result = formatTaskfileTextWithDiagnostics(input);
+    expect(yaml.parse(result.text)).toEqual(yaml.parse(input));
+    expect(result.diagnostics.length).toBeGreaterThan(0);
+  });
+
+  test("does not block task renaming for name-independent special variables", () => {
+    const result = formatTaskfileTextWithDiagnostics(
+      "tasks: {build_app: {cmds: ['echo {{.TASK_VERSION}}']}}",
+    );
+    expect(yaml.parse(result.text).tasks["build-app"]).toBeDefined();
+    expect(result.diagnostics).toEqual([]);
+  });
+
   test("rejects invalid YAML before any formatting", () => {
     expect(() => formatTaskfileText("tasks: {build: [")).toThrow(
       "Invalid YAML",

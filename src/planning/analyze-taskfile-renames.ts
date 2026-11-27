@@ -36,13 +36,17 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
     map.items.find((pair) => keyOf(pair) === name)?.value;
 
   function shellInvocation(node: unknown): void {
-    if (
-      yaml.isScalar(node) &&
-      typeof node.value === "string" &&
-      /\btask(?:\s|$)/.test(node.value)
-    )
+    if (!yaml.isScalar(node) || typeof node.value !== "string") return;
+    const command = node.value;
+    // Reject quoted/escaped spellings too; this is not a shell parser.
+    const unquoted = command.replace(/\\\r?\n/g, "").replace(/['"\\]/g, "");
+    if (/\btask\b/.test(unquoted) || /\{\{\s*\.TASK_EXE\s*\}\}/.test(command))
       hazard(
         "Shell Task invocations cannot be rewritten safely; preserving names.",
+      );
+    if (/\$(?:\(|\{|[A-Za-z_])|`/.test(command))
+      hazard(
+        "Dynamic shell expansions cannot be analyzed safely; preserving names.",
       );
   }
 
@@ -63,6 +67,8 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
           hazard("Complex keys or YAML merges require preserving names.");
         if (keyOf(pair) === "ref")
           hazard("Variable ref expressions require preserving names.");
+        if (keyOf(pair) === "sh")
+          hazard("Shell expression environments require preserving names.");
         if (keyOf(pair) === "requires" || keyOf(pair) === "for")
           hazard("Required-variable and loop scopes require preserving names.");
         if (["sh", "cmd", "if"].includes(keyOf(pair) ?? ""))

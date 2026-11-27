@@ -83,11 +83,16 @@ are supported. Namespace colons are preserved.
 
 When renaming would be needed, nonempty `includes`, YAML anchors/aliases/merges,
 task aliases, call-site variable overrides, complex/dynamic templates, shell
-Task invocations, or other unsupported forms conservatively preserve **all**
+expressions (`sh`), shell Task invocations (including quoted/escaped forms),
+dynamic shell expansions, or other unsupported forms conservatively preserve **all**
 names in that document. Unknown fields, including custom `tasks_*` sections,
 are not treated as task schema. Invalid YAML is rejected. YAML reference
 dependencies can also require preserving section order instead of enforcing
 the suggested order.
+
+Normalization into documented Task special-variable names is rejected.
+References to `{{.TASK}}` or `{{.ALIAS}}` also preserve the entire rename group
+when any task name would change, since those values expose task names.
 
 Use the diagnostic API to inspect why names were preserved:
 

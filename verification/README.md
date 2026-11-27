@@ -61,7 +61,8 @@ visible, and permits safe simultaneous swaps.
 | `CanonicalTable` / `NormalizationIdempotent` | A finite normalization table that explicitly maps every target to itself is idempotent on its domain.                                                                                                                      |
 
 `blocked` models the conservative analyzer's decision about unsupported
-constructs. The proof checks what the application does with that flag, **not**
+constructs, shell environments, reserved names, and task-name observations.
+The proof checks what the application does with that flag, **not**
 whether TypeScript computes it correctly.
 
 Names are opaque Dafny strings compared for exact equality. No regex, casing,
