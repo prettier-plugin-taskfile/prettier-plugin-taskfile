@@ -1,5 +1,6 @@
 import * as yaml from "yaml";
 import { normalizeTemplateWhitespace } from "../rules/normalize-template-whitespace";
+import { hasSharedYamlNodes } from "./has-shared-yaml-nodes";
 
 const taskFields = new Set([
   "vars",
@@ -24,17 +25,6 @@ function keyOf(pair: yaml.Pair): string | undefined {
   return yaml.isScalar(pair.key) && typeof pair.key.value === "string"
     ? pair.key.value
     : undefined;
-}
-
-export function hasSharedYamlNodes(root: yaml.YAMLMap): boolean {
-  let shared = false;
-  yaml.visit(root, {
-    Node: (_key, node) => {
-      if (yaml.isAlias(node) || ("anchor" in node && node.anchor))
-        shared = true;
-    },
-  });
-  return shared;
 }
 
 export function formatTemplateFields(root: yaml.YAMLMap): void {

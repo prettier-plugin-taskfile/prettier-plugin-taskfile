@@ -1,9 +1,7 @@
 import * as yaml from "yaml";
 import { compareRootKeys } from "../rules/sort-root-keys";
-import {
-  formatTemplateFields,
-  hasSharedYamlNodes,
-} from "./format-template-fields";
+import { formatTemplateFields } from "./format-template-fields";
+import { hasSharedYamlNodes } from "./has-shared-yaml-nodes";
 import { TaskfileDiagnostic, TaskfileFormattingOptions } from "../types";
 import { analyzeTaskfileRenames } from "../planning/analyze-taskfile-renames";
 import { createRenamePlan } from "../planning/create-rename-plan";
