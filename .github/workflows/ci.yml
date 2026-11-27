@@ -31,3 +31,30 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Check dependency direction
+        run: npm run check:dependencies
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Install Task
+        run: npm install --global @go-task/cli@3.54.0
+
+      - name: Check Task semantics
+        run: npm run test:task
+
+  verify-renames:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install pinned verification tools
+        run: npm run verify:setup
+
+      - name: Verify rename model and generated code
+        run: npm run verify:rename
