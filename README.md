@@ -93,6 +93,10 @@ the suggested order.
 Normalization into documented Task special-variable names is rejected.
 References to `{{.TASK}}` or `{{.ALIAS}}` also preserve the entire rename group
 when any task name would change, since those values expose task names.
+Template-derived shell executable names are also preserved, including after
+command separators and common shell wrappers. Variable initializer references
+to their own or later definitions are preserved when those names would change,
+rather than treating an earlier environment binding as the new variable.
 
 Use the diagnostic API to inspect why names were preserved:
 

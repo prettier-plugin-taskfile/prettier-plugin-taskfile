@@ -62,6 +62,8 @@ visible, and permits safe simultaneous swaps.
 
 `blocked` models the conservative analyzer's decision about unsupported
 constructs, shell environments, reserved names, and task-name observations.
+Declaration-time binding availability and template-derived shell executables
+are also analyzer inputs, not properties established by the finite model.
 The proof checks what the application does with that flag, **not**
 whether TypeScript computes it correctly.
 

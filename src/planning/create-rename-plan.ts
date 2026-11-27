@@ -101,6 +101,15 @@ export function createRenamePlan(
       false,
     );
     if (
+      definition &&
+      reference.definitionLimit !== undefined &&
+      analysis.definitions.indexOf(definition) >= reference.definitionLimit &&
+      target(definition) !== definition.name
+    )
+      hazards.add(
+        `Initializer reference "${reference.name}" may read an earlier external binding; preserving names.`,
+      );
+    if (
       !definition &&
       reference.kind === "variable" &&
       reference.scope === "root" &&

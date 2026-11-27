@@ -16,6 +16,8 @@ export interface NameReference {
   readonly scope: string;
   readonly start: number;
   readonly end: number;
+  // Definitions at or after this index are unavailable during initialization.
+  readonly definitionLimit?: number;
 }
 
 export interface RenameAnalysis {

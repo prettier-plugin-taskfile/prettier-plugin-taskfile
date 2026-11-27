@@ -124,6 +124,50 @@ tasks:
 `,
     }),
   ),
+  {
+    name: "template-derived executable names retain shell task references",
+    expected: "target\n",
+    text: `version: "3"
+vars:
+  runner: task
+tasks:
+  foo_bar:
+    cmds:
+      - echo target
+  caller:
+    cmds:
+      - "{{.runner}} foo_bar"
+`,
+  },
+  {
+    name: "self-named initializers retain root environment bindings",
+    expected: "hello\n",
+    text: `version: "3"
+env:
+  foo: hello
+vars:
+  foo: "{{.foo}}"
+tasks:
+  caller:
+    cmds:
+      - echo "{{.foo}}"
+`,
+  },
+  {
+    name: "forward initializer references retain earlier environment bindings",
+    expected: "outer/inner\n",
+    text: `version: "3"
+env:
+  later: outer
+vars:
+  before: "{{.later}}"
+  later: inner
+tasks:
+  caller:
+    cmds:
+      - echo "{{.before}}/{{.later}}"
+`,
+  },
 ];
 
 for (const fixture of fixtures) {

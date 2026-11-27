@@ -170,9 +170,15 @@ tasks:
     "$runner foo_bar",
     "$(printf task) foo_bar",
     "{{.TASK_EXE}} foo_bar",
-  ])("preserves quoted, escaped, and redirected shell calls: %s", (command) => {
+    "{{.runner}} foo_bar",
+    '"{{.runner}}" foo_bar',
+    "true; {{.runner}} foo_bar",
+    "env {{.runner}} foo_bar",
+    "FLAG=1 {{.runner}} foo_bar",
+  ])("preserves unsupported shell command forms: %s", (command) => {
     const input = yaml.stringify({
       version: "3",
+      vars: { runner: "task" },
       tasks: {
         foo_bar: { cmds: ["echo target"] },
         caller: { cmds: [command] },
@@ -200,6 +206,30 @@ tasks:
     const result = formatTaskfileTextWithDiagnostics(input);
     expect(yaml.parse(result.text)).toEqual(yaml.parse(input));
     expect(result.diagnostics.length).toBeGreaterThan(0);
+  });
+
+  test.each([
+    "env: {foo: hello}\nvars: {foo: '{{.foo}}'}",
+    "env: {later: outer}\nvars: {before: '{{.later}}', later: inner}",
+    "vars: {foo: global}\ntasks: {caller: {vars: {foo: '{{.foo}}'}}}",
+    "env: {out: '{{.foo}}'}\nvars: {foo: hello}",
+  ])("preserves unavailable initializer bindings: %s", (input) => {
+    const result = formatTaskfileTextWithDiagnostics(input);
+    expect(yaml.parse(result.text)).toEqual(yaml.parse(input));
+    expect(result.diagnostics.length).toBeGreaterThan(0);
+    expect(() =>
+      formatTaskfileText(input, { taskfileUnsafeRenames: "error" }),
+    ).toThrow("Unsafe Taskfile renames");
+  });
+
+  test("task environment templates can still read resolved variables", () => {
+    const result = formatTaskfileTextWithDiagnostics(
+      "vars: {foo: hello}\ntasks: {build_app: {env: {BAR: '{{.foo}}'}, cmds: ['echo {{.foo}}']}}",
+    );
+    const obj = yaml.parse(result.text);
+    expect(obj.vars).toEqual({ FOO: "hello" });
+    expect(obj.tasks["build-app"].env).toEqual({ BAR: "{{.FOO}}" });
+    expect(result.diagnostics).toEqual([]);
   });
 
   test.each(["task", "alias", "root_dir", "cli_args", "item", "task_version"])(

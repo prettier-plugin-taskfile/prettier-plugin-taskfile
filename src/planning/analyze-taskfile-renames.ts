@@ -1,5 +1,6 @@
 import * as yaml from "yaml";
 import { NameDefinition, NameReference, RenameAnalysis } from "./rename-types";
+import { hasTemplatedShellCommand } from "../rules/has-templated-shell-command";
 
 const rootTemplateFields = new Set(["vars", "env", "dir"]);
 const taskTemplateFields = new Set([
@@ -30,6 +31,7 @@ function keyOf(pair: yaml.Pair): string | undefined {
 export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
   const definitions: NameDefinition[] = [];
   const references: NameReference[] = [];
+  const initializerLimits = new Map<yaml.Node, number>();
   const hazards = new Set<string>();
   const hazard = (message: string) => hazards.add(message);
   const entry = (map: yaml.YAMLMap, name: string) =>
@@ -47,6 +49,10 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
     if (/\$(?:\(|\{|[A-Za-z_])|`/.test(command))
       hazard(
         "Dynamic shell expansions cannot be analyzed safely; preserving names.",
+      );
+    if (hasTemplatedShellCommand(command))
+      hazard(
+        "Template-derived shell commands cannot be analyzed safely; preserving names.",
       );
   }
 
@@ -98,6 +104,8 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
         definitions.push(
           Object.freeze({ node: pair.key, name, kind: "variable", scope }),
         );
+        if (yaml.isNode(pair.value))
+          initializerLimits.set(pair.value, definitions.length - 1);
       }
     }
   }
@@ -108,7 +116,10 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
     recognized: boolean,
     variableMap = false,
     variableValue = false,
+    definitionLimit?: number,
   ): void {
+    if (yaml.isNode(node))
+      definitionLimit = initializerLimits.get(node) ?? definitionLimit;
     if (yaml.isScalar(node) && typeof node.value === "string") {
       const text = node.value;
       if (!text.includes("{{") && !text.includes("}}")) return;
@@ -136,6 +147,7 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
               scope,
               start: nameStart,
               end: nameStart + simple[2].length,
+              definitionLimit,
             }),
           );
         }
@@ -160,6 +172,7 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
               key === "ref"),
           key === "vars" || key === "env",
           variableMap,
+          definitionLimit,
         );
       }
     } else if (yaml.isSeq(node))
@@ -170,6 +183,7 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
           recognized && !variableValue,
           false,
           variableValue,
+          definitionLimit,
         ),
       );
   }
@@ -283,6 +297,8 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
       "root",
       rootTemplateFields.has(key),
       key === "vars" || key === "env",
+      false,
+      key === "env" ? 0 : undefined,
     );
   }
   return Object.freeze({
