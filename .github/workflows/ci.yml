@@ -6,6 +6,9 @@ on:
       - main
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,10 +18,12 @@ jobs:
         node-version: [20, 22, 24]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7.1.0
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
@@ -31,3 +36,35 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Check dependency direction
+        run: npm run check:dependencies
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Install Task
+        uses: go-task/setup-task@v2.2.0
+        with:
+          version: "3.54.0"
+          checksum: "680859dbb4d881a9c72d4d9a8f510825450849af8567deacd7302c01124416fb"
+
+      - name: Check Task semantics
+        run: npm run test:task
+
+  verify-renames:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+
+      - name: Install pinned verification tools
+        run: npm run verify:setup
+
+      - name: Verify rename model and generated code
+        run: npm run verify:rename

@@ -2,6 +2,24 @@
  * Type definitions for Taskfile structures
  */
 
+export interface TaskfileFormattingOptions {
+  bracketSpacing?: boolean;
+  taskfileFlowSequencePadding?: boolean;
+  taskfileNormalizeNames?: boolean;
+  taskfileAllowRenamesWithIncludes?: boolean;
+  taskfileUnsafeRenames?: "preserve" | "error";
+}
+
+export interface TaskfileDiagnostic {
+  code: "unsafe-rename" | "unsafe-ordering" | "unchecked-includes";
+  message: string;
+}
+
+export interface TaskfileFormattingResult {
+  text: string;
+  diagnostics: readonly TaskfileDiagnostic[];
+}
+
 export interface TaskfileVars {
   [key: string]: string | number | boolean;
 }
@@ -67,6 +85,7 @@ export interface Taskfile {
 }
 
 export interface YamlStringifyOptions {
+  flowCollectionPadding?: boolean;
   indent?: number;
   lineWidth?: number;
   prettyErrors?: boolean;

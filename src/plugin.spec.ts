@@ -1,8 +1,32 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as yaml from "yaml";
 import { plugin, checkTaskfileFormatting, formatTaskfileText } from "./plugin";
 
 describe("Prettier Plugin", () => {
+  test("the printer forwards the default-false includes rename option", () => {
+    expect(plugin.options?.taskfileAllowRenamesWithIncludes).toEqual(
+      expect.objectContaining({ type: "boolean", default: false }),
+    );
+    const input =
+      "includes: {tools: ./tools.yml}\ntasks: {build_app: {deps: ['tools:foreign_task'], cmds: [echo]}}";
+    const print = (options: any) =>
+      plugin.printers!["taskfile-yaml"].print(
+        {
+          getNode: () =>
+            plugin.parsers!["taskfile-yaml"].parse(input, {} as any),
+        } as any,
+        options,
+        jest.fn(),
+      ) as string;
+    const output = print({ taskfileAllowRenamesWithIncludes: true });
+    expect(yaml.parse(output).tasks["build-app"].deps).toEqual([
+      "tools:foreign_task",
+    ]);
+    const defaultOutput = print({});
+    expect(yaml.parse(defaultOutput).tasks.build_app).toBeDefined();
+  });
+
   test("should have required plugin structure", () => {
     expect(plugin.languages).toBeDefined();
     expect(plugin.parsers).toBeDefined();
@@ -62,12 +86,9 @@ describe("Prettier Plugin", () => {
     // Test with a more severely malformed YAML that should cause an error
     const malformedYaml = "\t\t\tversion: {\n  invalid"; // Invalid structure
 
-    // Since yaml.parseDocument is very tolerant, we test that it at least doesn't crash
-    expect(() => {
-      const result = parser.parse(malformedYaml, {} as any);
-      // If parsing succeeds, the result should be defined
-      expect(result).toBeDefined();
-    }).not.toThrow();
+    expect(() => parser.parse(malformedYaml, {} as any)).toThrow(
+      "Invalid YAML",
+    );
   });
 
   test("should format simple Taskfile", () => {
@@ -356,7 +377,7 @@ version: '3'`;
     expect(checkTaskfileFormatting(fixture)).toBe(true);
   });
 
-  test("should format task-like sections beyond tasks", () => {
+  test("should preserve names in unknown task-like sections", () => {
     const input = `version: "3"
 tasks_with_templates:
   build_app:
@@ -366,27 +387,29 @@ tasks_with_templates:
     const formatted = formatTaskfileText(input);
 
     expect(formatted).toContain("tasks_with_templates:");
-    expect(formatted).toContain("build-app:");
-    expect(formatted).toContain("{{.PROJECT_NAME}}");
+    expect(formatted).toContain("build_app:");
+    expect(formatted).toContain("{{ .PROJECT_NAME }}");
   });
 
   test("should indent with 2 spaces", () => {
     const input = `version: "3"
 
 tasks:
-   desc: The task
-   cmds:
-      - echo 87
-`
+   build:
+      desc: The task
+      cmds:
+         - echo 87
+`;
 
     const formatted = formatTaskfileText(input);
     expect(formatted).toEqual(`version: "3"
 
 tasks:
-  desc: The task
-  cmds:
-    - echo 87
-`)
+  build:
+    desc: The task
+    cmds:
+      - echo 87
+`);
   });
 
   test("should not wrap lines", () => {
@@ -395,12 +418,13 @@ tasks:
 # Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 
 tasks:
-  desc: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-  cmds:
-    - echo "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-`
+  build:
+    desc: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+    cmds:
+      - echo "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+`;
 
     const formatted = formatTaskfileText(input);
-    expect(formatted).toEqual(input)
+    expect(formatted).toEqual(input);
   });
 });

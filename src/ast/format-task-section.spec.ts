@@ -16,14 +16,14 @@ describe("formatTaskSection", () => {
 
     expect(tasksMap.items).toHaveLength(2);
     const taskEntry = tasksMap.items.find(
-      (item) => yaml.isScalar(item.key) && item.key.value === "build-task",
+      (item) => yaml.isScalar(item.key) && item.key.value === "build_task",
     );
     expect(taskEntry).toBeDefined();
     if (!taskEntry) {
       throw new Error("task entry not found");
     }
     expect(yaml.isScalar(taskEntry.key) && taskEntry.key.value).toBe(
-      "build-task",
+      "build_task",
     );
     expect(String(taskEntry.value)).toContain("{{.PROJECT}}");
   });

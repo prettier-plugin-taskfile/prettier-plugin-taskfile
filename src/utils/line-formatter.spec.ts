@@ -253,7 +253,7 @@ tasks:
     const result = addEmptyLines(input);
 
     // Should add empty line between namespaced tasks
-    expect(result).toContain("docker build .\n  docker:run:");
+    expect(result).toContain("docker build .\n\n  docker:run:");
   });
 
   test("should handle tasks_with_templates with proper line check", () => {
@@ -361,7 +361,7 @@ tasks:
     expect(result).toContain('echo "Building..."\n  # trailing comment');
   });
 
- test("should not add empty lines between sub sections with main section names", () => {
+  test("should not add empty lines between sub sections with main section names", () => {
     const input = `version: 3
 vars:
   VAR: value

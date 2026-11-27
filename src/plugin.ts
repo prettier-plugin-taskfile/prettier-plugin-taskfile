@@ -4,13 +4,51 @@ import {
   checkTaskfileFormatting,
   createTaskfileDocument,
   formatTaskfileText,
+  formatTaskfileTextWithDiagnostics,
   printTaskfileDocument,
 } from "./api/format-taskfile-text";
+import { TaskfileFormattingOptions } from "./types";
 
 /**
  * Prettier plugin for Taskfile YAML formatting
  */
 export const plugin: Plugin = {
+  options: {
+    taskfileFlowSequencePadding: {
+      type: "boolean",
+      category: "Taskfile",
+      default: false,
+      description: "Add inner spaces to single-line flow sequences.",
+    },
+    taskfileNormalizeNames: {
+      type: "boolean",
+      category: "Taskfile",
+      default: true,
+      description:
+        "Normalize Taskfile names and recognized references when safe.",
+    },
+    taskfileAllowRenamesWithIncludes: {
+      type: "boolean",
+      category: "Taskfile",
+      default: false,
+      description:
+        "Allow local renaming with includes without checking or rewriting external Taskfiles.",
+    },
+    taskfileUnsafeRenames: {
+      type: "choice",
+      category: "Taskfile",
+      default: "preserve",
+      description:
+        "Preserve names or fail when safe renaming cannot be established.",
+      choices: [
+        {
+          value: "preserve",
+          description: "Preserve all names in unsafe documents.",
+        },
+        { value: "error", description: "Reject unsafe name normalization." },
+      ],
+    },
+  },
   languages: [
     {
       name: "TaskfileYAML",
@@ -25,7 +63,6 @@ export const plugin: Plugin = {
         try {
           return createTaskfileDocument(text);
         } catch (error) {
-          console.error("Failed to parse YAML:", error);
           throw new Error(
             `Invalid YAML: ${error instanceof Error ? error.message : "Unknown error"}`,
           );
@@ -54,12 +91,13 @@ export const plugin: Plugin = {
   },
   printers: {
     "taskfile-yaml": {
-      print: (path) => {
+      print: (path, options) => {
         try {
-          return printTaskfileDocument(path.getNode());
+          return printTaskfileDocument(
+            path.getNode(),
+            options as TaskfileFormattingOptions,
+          );
         } catch (error) {
-          console.error("Failed to format Taskfile:", error);
-
           if (
             error instanceof Error &&
             (error as any).start !== undefined &&
@@ -80,4 +118,8 @@ export const plugin: Plugin = {
     },
   },
 };
-export { formatTaskfileText, checkTaskfileFormatting };
+export {
+  formatTaskfileText,
+  formatTaskfileTextWithDiagnostics,
+  checkTaskfileFormatting,
+};

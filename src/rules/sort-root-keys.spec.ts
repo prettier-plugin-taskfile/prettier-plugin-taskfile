@@ -18,4 +18,46 @@ describe("sortRootKeys", () => {
       "custom_b",
     ]);
   });
+
+  test("places optional configurations before variables and dotenv after env", () => {
+    expect(
+      sortRootKeys([
+        "tasks",
+        "dotenv",
+        "env",
+        "vars",
+        "use_gitignore",
+        "shopt",
+        "set",
+        "interval",
+        "run",
+        "method",
+        "silent",
+        "output",
+        "includes",
+        "version",
+      ]),
+    ).toEqual([
+      "version",
+      "includes",
+      "output",
+      "silent",
+      "method",
+      "run",
+      "interval",
+      "set",
+      "shopt",
+      "use_gitignore",
+      "vars",
+      "env",
+      "dotenv",
+      "tasks",
+    ]);
+    expect(sortRootKeys(["tasks", "dotenv", "vars", "version"])).toEqual([
+      "version",
+      "vars",
+      "dotenv",
+      "tasks",
+    ]);
+  });
 });

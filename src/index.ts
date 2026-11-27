@@ -1,4 +1,14 @@
-import { plugin, formatTaskfileText, checkTaskfileFormatting } from "./plugin";
+import {
+  plugin,
+  formatTaskfileText,
+  formatTaskfileTextWithDiagnostics,
+  checkTaskfileFormatting,
+} from "./plugin";
+export type {
+  TaskfileFormattingOptions,
+  TaskfileDiagnostic,
+  TaskfileFormattingResult,
+} from "./types";
 
 // Import functions for CommonJS compatibility
 import {
@@ -21,6 +31,7 @@ export {
   processCommands,
   formatTaskfile,
   formatTaskfileText,
+  formatTaskfileTextWithDiagnostics,
   checkTaskfileFormatting,
   getYamlOptions,
   addEmptyLines,
@@ -38,6 +49,8 @@ module.exports.removeTemplateWhitespace = removeTemplateWhitespace;
 module.exports.processCommands = processCommands;
 module.exports.formatTaskfile = formatTaskfile;
 module.exports.formatTaskfileText = formatTaskfileText;
+module.exports.formatTaskfileTextWithDiagnostics =
+  formatTaskfileTextWithDiagnostics;
 module.exports.checkTaskfileFormatting = checkTaskfileFormatting;
 module.exports.getYamlOptions = getYamlOptions;
 module.exports.addEmptyLines = addEmptyLines;

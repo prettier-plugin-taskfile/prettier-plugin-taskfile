@@ -1,5 +1,5 @@
-import { TaskfileTasks } from "../types";
-import { normalizeTaskName } from "../rules/normalize-task-name";
+import { TaskfileFormattingOptions, TaskfileTasks } from "../types";
+import { formatTaskfile } from "./taskfile-formatter";
 
 /**
  * Converts task names to kebab case according to the style guide.
@@ -8,12 +8,11 @@ import { normalizeTaskName } from "../rules/normalize-task-name";
  * @param tasks The tasks object from the Taskfile
  * @returns A new tasks object with kebab-case task names
  */
-export function kebabCaseTaskNames(tasks: TaskfileTasks): TaskfileTasks {
+export function kebabCaseTaskNames(
+  tasks: TaskfileTasks,
+  options: TaskfileFormattingOptions = {},
+): TaskfileTasks {
   if (!tasks) return tasks;
 
-  const result: TaskfileTasks = {};
-  for (const key in tasks) {
-    result[normalizeTaskName(key)] = tasks[key];
-  }
-  return result;
+  return formatTaskfile({ tasks }, options).tasks!;
 }

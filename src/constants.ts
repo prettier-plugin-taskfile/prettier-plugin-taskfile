@@ -10,14 +10,15 @@
 export const TASKFILE_KEY_PRIORITY = [
   "version",
   "includes",
-  // "optional configurations" (cf. https://taskfile.dev/docs/styleguide#use-the-suggested-ordering-of-the-main-sections) in the order from https://taskfile.dev/docs/reference/schema#root-schema
+  // Optional configurations precede vars, env and dotenv.
   "output",
-  "method",
   "silent",
+  "method",
   "run",
   "interval",
   "set",
   "shopt",
+  "use_gitignore",
   // end of "optional configurations"
   "vars",
   "env",
@@ -31,6 +32,7 @@ export const TASKFILE_KEY_PRIORITY = [
  * @see https://eemeli.org/yaml/#tostring-options
  */
 export const DEFAULT_YAML_OPTIONS = {
+  flowCollectionPadding: true,
   indent: 2, // Use two spaces for indentation
   lineWidth: 0, // Disable line wrapping
   prettyErrors: true,
@@ -54,7 +56,7 @@ export const TASKFILE_FILENAMES = [
  */
 export const REGEX_PATTERNS = {
   // Template variable pattern: {{ .VAR }} -> {{.VAR}}
-  TEMPLATE_WHITESPACE: /\{\{\s*\.\s*([A-Z0-9_]+)\s*\}\}/g,
+  TEMPLATE_WHITESPACE: /^\{\{\s*(\.[A-Za-z_][A-Za-z0-9_]*)\s*\}\}$/,
 
   // Main section pattern
   MAIN_SECTION: /^[a-z_][a-z0-9_:-]*:$/i,

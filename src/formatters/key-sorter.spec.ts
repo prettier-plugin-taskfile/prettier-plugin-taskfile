@@ -28,8 +28,8 @@ describe("sortTaskfileKeys", () => {
     expect(keys[0]).toBe("version");
     expect(keys[1]).toBe("includes");
     expect(keys[2]).toBe("output");
-    expect(keys[3]).toBe("method");
-    expect(keys[4]).toBe("silent");
+    expect(keys[3]).toBe("silent");
+    expect(keys[4]).toBe("method");
     expect(keys[5]).toBe("run");
     expect(keys[6]).toBe("interval");
     expect(keys[7]).toBe("set");
@@ -107,8 +107,8 @@ describe("sortTaskfileKeys", () => {
     expect(keys[0]).toBe("version");
     expect(keys[1]).toBe("includes");
     expect(keys[2]).toBe("output");
-    expect(keys[3]).toBe("method");
-    expect(keys[4]).toBe("silent");
+    expect(keys[3]).toBe("silent");
+    expect(keys[4]).toBe("method");
     expect(keys[5]).toBe("vars");
     expect(keys[6]).toBe("env");
     expect(keys[7]).toBe("tasks");

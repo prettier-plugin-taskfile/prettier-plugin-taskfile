@@ -1,6 +1,22 @@
 import { formatTaskfile } from "./taskfile-formatter";
 
 describe("formatTaskfile", () => {
+  test("the object API can opt into local renaming with included tasks", () => {
+    const input = {
+      version: "3",
+      includes: { tools: "./tools.yml" },
+      tasks: {
+        build_app: { deps: ["tools:foreign_task"], cmds: ["echo local"] },
+      },
+    };
+    const result = formatTaskfile(input, {
+      taskfileAllowRenamesWithIncludes: true,
+    });
+    expect(result.tasks?.["build-app"]?.deps).toEqual(["tools:foreign_task"]);
+    expect(result.includes).toEqual(input.includes);
+    expect(input.tasks.build_app).toBeDefined();
+  });
+
   test("should handle null or undefined input", () => {
     expect(formatTaskfile(null as any)).toEqual({});
     expect(formatTaskfile(undefined as any)).toEqual({});
@@ -10,14 +26,14 @@ describe("formatTaskfile", () => {
     const input = {
       tasks: {
         build_app: {
-          cmds: ['echo "Building {{ .PROJECT }}"'],
+          cmds: ['echo "Building {{ .project_name }}"'],
         },
         test_suite: {
-          cmds: ['echo "Testing {{ .NAME }}"'],
+          cmds: ['echo "Testing {{ .debug_mode }}"'],
         },
       },
       env: { NODE_ENV: "development" },
-      includes: { common: "./common.yml" },
+      includes: {},
       vars: {
         project_name: "my-project",
         debug_mode: true,
@@ -47,10 +63,10 @@ describe("formatTaskfile", () => {
 
     // Check template formatting in commands
     expect(result.tasks?.["build-app"]?.cmds?.[0]).toBe(
-      'echo "Building {{.PROJECT}}"',
+      'echo "Building {{.PROJECT_NAME}}"',
     );
     expect(result.tasks?.["test-suite"]?.cmds?.[0]).toBe(
-      'echo "Testing {{.NAME}}"',
+      'echo "Testing {{.DEBUG_MODE}}"',
     );
   });
 
@@ -74,17 +90,7 @@ describe("formatTaskfile", () => {
 
     const result = formatTaskfile(input);
 
-    // Check that tasks_with_templates is processed
-    expect(result.tasks_with_templates?.["template-task"]).toBeDefined();
-    expect(result.tasks_with_templates?.["another-template"]).toBeDefined();
-
-    // Check template formatting
-    expect(result.tasks_with_templates?.["template-task"]?.cmds?.[0]).toBe(
-      'echo "Hello {{.NAME}}"',
-    );
-    expect(result.tasks_with_templates?.["another-template"]?.cmds?.[0]).toBe(
-      'echo "Value: {{.VALUE}}"',
-    );
+    expect(result.tasks_with_templates).toEqual(input.tasks_with_templates);
   });
 
   test("should handle multiple task-like sections", () => {
@@ -104,19 +110,14 @@ describe("formatTaskfile", () => {
 
     const result = formatTaskfile(input);
 
-    expect(result.tasks_dev?.["dev-task"]).toBeDefined();
-    expect(result.tasks_prod?.["prod-task"]).toBeDefined();
-    expect(result.tasks_dev?.["dev-task"]?.cmds?.[0]).toBe(
-      'echo "dev {{.ENV}}"',
-    );
-    expect(result.tasks_prod?.["prod-task"]?.cmds?.[0]).toBe(
-      'echo "prod {{.ENV}}"',
-    );
+    expect(result.tasks_dev).toEqual(input.tasks_dev);
+    expect(result.tasks_prod).toEqual(input.tasks_prod);
   });
 
   test("should preserve task properties while formatting", () => {
     const input = {
       version: "3",
+      vars: { PROJECT: "demo" },
       tasks: {
         complex_task: {
           desc: "A complex task",
@@ -136,6 +137,7 @@ describe("formatTaskfile", () => {
           silent: false,
           interactive: true,
         },
+        "other-task": { cmds: [] },
       },
     };
 
@@ -146,7 +148,7 @@ describe("formatTaskfile", () => {
     expect(task?.deps).toEqual(["other-task"]);
     expect(task?.sources).toEqual(["src/**/*.ts"]);
     expect(task?.generates).toEqual(["dist/app.js"]);
-    expect(task?.vars).toEqual({ task_var: "value" });
+    expect(task?.vars).toEqual({ TASK_VAR: "value" });
     expect(task?.env).toEqual({ TASK_ENV: "test" });
     expect(task?.silent).toBe(false);
     expect(task?.interactive).toBe(true);
@@ -198,6 +200,7 @@ describe("formatTaskfile", () => {
           desc: "A task with empty commands",
           cmds: [],
         },
+        "other-task": { cmds: [] },
       },
     };
 
@@ -226,11 +229,7 @@ describe("formatTaskfile", () => {
 
     const result = formatTaskfile(input);
 
-    // Check that only proper object type tasks_ sections are processed
-    expect(result.tasks_custom?.["custom-task"]).toBeDefined();
-    expect(result.tasks_custom?.["custom-task"]?.cmds?.[0]).toBe(
-      'echo "custom {{.VAR}}"',
-    );
+    expect(result.tasks_custom).toEqual(input.tasks_custom);
 
     // Invalid tasks_ section should be preserved as-is
     expect((result as any).tasks_invalid).toBe("not an object");
@@ -252,20 +251,7 @@ describe("formatTaskfile", () => {
 
     const result = formatTaskfile(input);
 
-    // Check that both tasks are processed correctly
-    expect(result.tasks_special?.["task-with-cmds"]).toBeDefined();
-    expect(result.tasks_special?.["task-with-cmds"]?.cmds?.[0]).toBe(
-      'echo "has cmds {{.VAR}}"',
-    );
-
-    expect(result.tasks_special?.["task-without-cmds"]).toBeDefined();
-    expect(result.tasks_special?.["task-without-cmds"]?.desc).toBe(
-      "No commands",
-    );
-    expect(result.tasks_special?.["task-without-cmds"]?.deps).toEqual([
-      "other-task",
-    ]);
-    expect(result.tasks_special?.["task-without-cmds"]?.cmds).toBeUndefined();
+    expect(result.tasks_special).toEqual(input.tasks_special);
   });
 
   test("should preserve null task entries without trying to process commands", () => {
@@ -278,6 +264,22 @@ describe("formatTaskfile", () => {
 
     const result = formatTaskfile(input as any);
 
-    expect(result.tasks_special?.["skipped-task"]).toBeNull();
+    expect(result.tasks_special?.skipped_task).toBeNull();
+  });
+
+  test("uses the same collision policy without mutating the input object", () => {
+    const input = {
+      version: "3",
+      tasks: {
+        build_app: { cmds: ["echo first"] },
+        "build-app": { cmds: ["echo second"] },
+      },
+    };
+    const snapshot = JSON.parse(JSON.stringify(input));
+    expect(formatTaskfile(input).tasks).toEqual(input.tasks);
+    expect(input).toEqual(snapshot);
+    expect(() =>
+      formatTaskfile(input, { taskfileUnsafeRenames: "error" }),
+    ).toThrow();
   });
 });
