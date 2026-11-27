@@ -59,6 +59,32 @@ Add the plugin to your Prettier configuration (`.prettierrc`, `.prettierrc.json`
 
 This plugin works with all editor integrations that use Prettier. Once installed, it will automatically be used when formatting Taskfiles.
 
+### Flow collection padding
+
+Single-line flow arrays default to `[init, build, deploy]`, while objects
+default to `{ debug: false, verbose: true }`, matching Prettier's usual style.
+This preference is not mandated by the Taskfile Style Guide and is configurable:
+
+| Option                        | Default | Behavior                                                                                                   |
+| ----------------------------- | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `taskfileFlowSequencePadding` | `false` | Add inner array spaces when `true`, restoring the previous `[ init, build, deploy ]` style.                |
+| `bracketSpacing`              | `true`  | Prettier's standard option controls inner object spaces; `false` produces `{debug: false, verbose: true}`. |
+
+For example, remove inner spaces from both arrays and objects:
+
+```json
+{
+  "plugins": ["prettier-plugin-taskfile"],
+  "taskfileFlowSequencePadding": false,
+  "bracketSpacing": false
+}
+```
+
+These options affect rendered single-line flow collections, including nested
+ones, without changing collection style or scalar contents. Empty collections
+remain `[]` and `{}`; multiline flow collection boundaries are not adjusted.
+Padding is independent of name-normalization safety decisions.
+
 ### Safety options
 
 | Option                             | Default      | Behavior                                                                                                                                 |

@@ -3,6 +3,8 @@
  */
 
 export interface TaskfileFormattingOptions {
+  bracketSpacing?: boolean;
+  taskfileFlowSequencePadding?: boolean;
   taskfileNormalizeNames?: boolean;
   taskfileAllowRenamesWithIncludes?: boolean;
   taskfileUnsafeRenames?: "preserve" | "error";
@@ -83,6 +85,7 @@ export interface Taskfile {
 }
 
 export interface YamlStringifyOptions {
+  flowCollectionPadding?: boolean;
   indent?: number;
   lineWidth?: number;
   prettyErrors?: boolean;

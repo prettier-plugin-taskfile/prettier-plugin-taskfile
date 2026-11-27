@@ -14,6 +14,12 @@ import { TaskfileFormattingOptions } from "./types";
  */
 export const plugin: Plugin = {
   options: {
+    taskfileFlowSequencePadding: {
+      type: "boolean",
+      category: "Taskfile",
+      default: false,
+      description: "Add inner spaces to single-line flow sequences.",
+    },
     taskfileNormalizeNames: {
       type: "boolean",
       category: "Taskfile",

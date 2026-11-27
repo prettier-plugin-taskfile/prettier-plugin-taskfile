@@ -275,3 +275,31 @@ test("Prettier accepts and forwards the includes rename option", async () => {
   const preserved = await prettier.format(text, options);
   assert.ok(yaml.parse(preserved).tasks.build_app);
 });
+
+test("Prettier formats issue #13 and forwards independent padding options", async () => {
+  const text = `version: "3"
+vars:
+  STAGES: [init, build, deploy]
+  OPTIONS: {debug: false, verbose: true}
+`;
+  const options = { parser: "taskfile-yaml", plugins: [plugin] };
+  const formatted = await prettier.format(text, options);
+  assert.ok(formatted.includes("STAGES: [init, build, deploy]"));
+  assert.ok(formatted.includes("OPTIONS: { debug: false, verbose: true }"));
+  const customized = await prettier.format(text, {
+    ...options,
+    taskfileFlowSequencePadding: true,
+    bracketSpacing: false,
+  });
+  assert.ok(customized.includes("STAGES: [ init, build, deploy ]"));
+  assert.ok(customized.includes("OPTIONS: {debug: false, verbose: true}"));
+  assert.deepEqual(yaml.parse(customized), yaml.parse(text));
+  assert.equal(
+    await prettier.format(customized, {
+      ...options,
+      taskfileFlowSequencePadding: true,
+      bracketSpacing: false,
+    }),
+    customized,
+  );
+});

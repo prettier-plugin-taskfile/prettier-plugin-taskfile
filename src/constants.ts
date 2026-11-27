@@ -32,6 +32,7 @@ export const TASKFILE_KEY_PRIORITY = [
  * @see https://eemeli.org/yaml/#tostring-options
  */
 export const DEFAULT_YAML_OPTIONS = {
+  flowCollectionPadding: true,
   indent: 2, // Use two spaces for indentation
   lineWidth: 0, // Disable line wrapping
   prettyErrors: true,

@@ -12,6 +12,52 @@ const identifierSuffix = fc
 const propertyOptions = { seed: 20261127, numRuns: 100 };
 
 describe("Taskfile formatting contracts", () => {
+  test("flow padding preserves generated nested scalar values and reaches a fixed point", () => {
+    const scalar = fc
+      .array(
+        fc.constantFrom(
+          "a",
+          " ",
+          "\n",
+          "[",
+          "]",
+          "{",
+          "}",
+          "#",
+          ":",
+          "'",
+          '"',
+          "\t",
+        ),
+        { maxLength: 50 },
+      )
+      .map((characters) => characters.join(""));
+    fc.assert(
+      fc.property(
+        fc.array(scalar, { maxLength: 8 }),
+        fc.boolean(),
+        fc.boolean(),
+        (values, taskfileFlowSequencePadding, bracketSpacing) => {
+          const original = {
+            version: "3",
+            vars: { VALUES: values, NESTED: [{ text: values, empty: [] }] },
+          };
+          const document = new yaml.Document(original);
+          yaml.visit(document, {
+            Collection(_key, node) {
+              node.flow = true;
+            },
+          });
+          const options = { taskfileFlowSequencePadding, bracketSpacing };
+          const output = formatTaskfileText(document.toString(), options);
+          expect(yaml.parse(output)).toEqual(original);
+          expect(formatTaskfileText(output, options)).toBe(output);
+        },
+      ),
+      propertyOptions,
+    );
+  });
+
   test("normalizes definitions and references together and reaches a fixed point", () => {
     fc.assert(
       fc.property(identifierSuffix, (suffix) => {

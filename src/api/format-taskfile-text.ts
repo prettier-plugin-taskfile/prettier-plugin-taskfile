@@ -1,6 +1,7 @@
 import * as yaml from "yaml";
 import { formatTaskfileDocument } from "../ast/format-document";
 import { addEmptyLines } from "../render/add-empty-lines";
+import { formatFlowCollectionPadding } from "../render/flow-collection-padding";
 import { getYamlOptions } from "../render/yaml-options";
 import {
   TaskfileDiagnostic,
@@ -24,7 +25,9 @@ export function printTaskfileDocument(
 ): string {
   formatTaskfileDocument(doc, options, diagnostics);
 
-  return addEmptyLines(doc.toString(getYamlOptions()));
+  return addEmptyLines(
+    formatFlowCollectionPadding(doc.toString(getYamlOptions()), options),
+  );
 }
 
 export function formatTaskfileText(
