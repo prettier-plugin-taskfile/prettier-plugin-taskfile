@@ -1,25 +1,11 @@
 import * as yaml from "yaml";
 import { normalizeTemplateWhitespace } from "../rules/normalize-template-whitespace";
+import {
+  classifyTaskfileTemplateField,
+  classifyTaskfileTemplateSequence,
+  TaskfileTemplateContext,
+} from "../rules/taskfile-template-context";
 import { hasSharedYamlNodes } from "./has-shared-yaml-nodes";
-
-const taskFields = new Set([
-  "vars",
-  "env",
-  "cmds",
-  "cmd",
-  "defer",
-  "desc",
-  "summary",
-  "dir",
-  "sources",
-  "generates",
-  "status",
-  "preconditions",
-  "if",
-  "msg",
-  "label",
-  "prefix",
-]);
 
 function keyOf(pair: yaml.Pair): string | undefined {
   return yaml.isScalar(pair.key) && typeof pair.key.value === "string"
@@ -30,35 +16,31 @@ function keyOf(pair: yaml.Pair): string | undefined {
 export function formatTemplateFields(root: yaml.YAMLMap): void {
   if (hasSharedYamlNodes(root)) return;
 
-  function value(
-    node: unknown,
-    variables = false,
-    variableValue = false,
-  ): void {
+  function value(node: unknown, context: TaskfileTemplateContext): void {
     if (yaml.isScalar(node) && typeof node.value === "string")
       node.value = normalizeTemplateWhitespace(node.value);
     else if (yaml.isSeq(node)) {
-      if (!variableValue) node.items.forEach((item) => value(item));
+      const classification = classifyTaskfileTemplateSequence(context);
+      if (classification.recognized)
+        node.items.forEach((item) => value(item, classification.context));
     } else if (yaml.isMap(node)) {
       for (const pair of node.items) {
         const key = keyOf(pair) ?? "";
-        if (
-          variables ||
-          (!variableValue && taskFields.has(key)) ||
-          key === "sh" ||
-          key === "ref"
-        )
-          value(pair.value, key === "vars" || key === "env", variables);
+        const classification = classifyTaskfileTemplateField(key, context);
+        if (classification.recognized)
+          value(pair.value, classification.context);
       }
     }
   }
 
   for (const pair of root.items) {
     const key = keyOf(pair);
-    if (key === "vars" || key === "env") value(pair.value, true);
-    else if (key === "dir") value(pair.value);
+    const classification = classifyTaskfileTemplateField(key ?? "", {
+      kind: "root",
+    });
+    if (classification.recognized) value(pair.value, classification.context);
     else if (key === "tasks" && yaml.isMap(pair.value)) {
-      for (const task of pair.value.items) value(task.value);
+      for (const task of pair.value.items) value(task.value, { kind: "task" });
     }
   }
 }
