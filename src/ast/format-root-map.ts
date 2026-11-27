@@ -1,11 +1,25 @@
 import * as yaml from "yaml";
 import { compareRootKeys } from "../rules/sort-root-keys";
-import { isTaskLikeSection } from "../rules/is-task-like-section";
-import { formatTaskSection } from "./format-task-section";
-import { formatVarsSection } from "./format-vars-section";
+import {
+  formatTemplateFields,
+  hasSharedYamlNodes,
+} from "./format-template-fields";
+import { TaskfileDiagnostic, TaskfileFormattingOptions } from "../types";
+import { analyzeTaskfileRenames } from "../planning/analyze-taskfile-renames";
+import { createRenamePlan } from "../planning/create-rename-plan";
+import { applyRenamePlan } from "../planning/apply-rename-plan";
 
-export function formatRootMap(rootMap: yaml.YAMLMap): void {
-  rootMap.items.sort((itemA, itemB) => {
+export function formatRootMap(
+  rootMap: yaml.YAMLMap,
+  options: TaskfileFormattingOptions = {},
+  diagnostics: TaskfileDiagnostic[] = [],
+): void {
+  if (options.taskfileNormalizeNames !== false) {
+    const plan = createRenamePlan(analyzeTaskfileRenames(rootMap), options);
+    applyRenamePlan(plan);
+    diagnostics.push(...plan.diagnostics);
+  }
+  const sortedItems = [...rootMap.items].sort((itemA, itemB) => {
     const keyA =
       yaml.isScalar(itemA.key) && typeof itemA.key.value === "string"
         ? itemA.key.value
@@ -17,20 +31,13 @@ export function formatRootMap(rootMap: yaml.YAMLMap): void {
 
     return compareRootKeys(keyA, keyB);
   });
+  if (hasSharedYamlNodes(rootMap)) {
+    if (sortedItems.some((item, index) => item !== rootMap.items[index]))
+      diagnostics.push({
+        code: "unsafe-ordering",
+        message: "Preserving root order to keep YAML anchors before aliases.",
+      });
+  } else rootMap.items = sortedItems;
 
-  rootMap.items.forEach((item) => {
-    if (!yaml.isScalar(item.key) || typeof item.key.value !== "string") {
-      return;
-    }
-
-    const key = item.key.value;
-    if (key === "vars" && yaml.isMap(item.value)) {
-      formatVarsSection(item.value);
-      return;
-    }
-
-    if (isTaskLikeSection(key) && yaml.isMap(item.value)) {
-      formatTaskSection(item.value);
-    }
-  });
+  formatTemplateFields(rootMap);
 }

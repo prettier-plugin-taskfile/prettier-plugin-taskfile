@@ -7,7 +7,7 @@ describe("formatTaskfileDocument", () => {
 tasks:
   build_project:
     cmds:
-      - echo "{{ .PROJECT_NAME }}"
+      - echo "{{ .project_name }}"
 vars:
   project_name: demo
 version: "3"`;

@@ -1,5 +1,5 @@
-import { TaskfileVars } from "../types";
-import { normalizeVariableName } from "../rules/normalize-variable-name";
+import { TaskfileFormattingOptions, TaskfileVars } from "../types";
+import { formatTaskfile } from "./taskfile-formatter";
 
 /**
  * Converts variable names to uppercase according to the style guide.
@@ -7,12 +7,11 @@ import { normalizeVariableName } from "../rules/normalize-variable-name";
  * @param vars The vars object from the Taskfile
  * @returns A new vars object with uppercase keys
  */
-export function uppercaseVariableNames(vars: TaskfileVars): TaskfileVars {
+export function uppercaseVariableNames(
+  vars: TaskfileVars,
+  options: TaskfileFormattingOptions = {},
+): TaskfileVars {
   if (!vars) return vars;
 
-  const result: TaskfileVars = {};
-  for (const key in vars) {
-    result[normalizeVariableName(key)] = vars[key];
-  }
-  return result;
+  return formatTaskfile({ vars }, options).vars!;
 }

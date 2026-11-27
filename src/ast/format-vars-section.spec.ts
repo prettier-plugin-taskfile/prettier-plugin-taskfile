@@ -13,14 +13,14 @@ describe("formatVarsSection", () => {
 
     expect(varsMap.items).toHaveLength(2);
     const variableEntry = varsMap.items.find(
-      (item) => yaml.isScalar(item.key) && item.key.value === "PROJECT_NAME",
+      (item) => yaml.isScalar(item.key) && item.key.value === "project_name",
     );
     expect(variableEntry).toBeDefined();
     if (!variableEntry) {
       throw new Error("variable entry not found");
     }
     expect(yaml.isScalar(variableEntry.key) && variableEntry.key.value).toBe(
-      "PROJECT_NAME",
+      "project_name",
     );
   });
 });

@@ -62,6 +62,14 @@ describe("Index exports", () => {
     expect(sortTaskfileKeys).toBeDefined();
   });
 
+  test("exports the diagnostic API for preserved unsafe names", () => {
+    const result = index.formatTaskfileTextWithDiagnostics(
+      "vars: {foo: one, FOO: two}",
+    );
+    expect(result.text).toContain("foo:");
+    expect(result.diagnostics[0].code).toBe("unsafe-rename");
+  });
+
   test("should call all exported formatter functions correctly", () => {
     const testData = {
       version: "3",

@@ -17,7 +17,7 @@ tasks:
   build_project:
     desc: Build the project
     cmds:
-      - echo "Building {{   .PROJECT_NAME   }}" # Command comment`;
+      - echo "Building {{   .project_name   }}" # Command comment`;
 
     const doc = yaml.parseDocument(yamlWithComments);
     const result = formatTaskfileDocument(doc, yamlWithComments);
@@ -143,10 +143,12 @@ tasks:
     deps:
       - clean_build # Clean first
     cmds:
-      - echo "Building {{   .PROJECT_NAME   }}..." # Start message
+      - echo "Building {{   .project_name   }}..." # Start message
       - npm run build
     vars:
-      local_var: value # Task-specific variable`;
+      local_var: value # Task-specific variable
+  clean_build:
+    cmds: []`;
 
     const doc = yaml.parseDocument(yamlWithComments);
     const result = formatTaskfileDocument(doc, yamlWithComments);
@@ -167,7 +169,7 @@ tasks:
     expect(formattedYaml).toContain("PROJECT_NAME: myapp");
     expect(formattedYaml).toContain("BUILD_ENV: production");
     expect(formattedYaml).toContain("build-app:");
-    expect(formattedYaml).toContain("clean_build"); // deps is not formatted by current implementation
+    expect(formattedYaml).toContain("clean-build");
     expect(formattedYaml).toContain("{{.PROJECT_NAME}}");
   });
 

@@ -27,6 +27,6 @@ describe("formatRootMap", () => {
       yaml.isMap(varsEntry.value) &&
         yaml.isScalar(varsEntry.value.items[0]?.key) &&
         varsEntry.value.items[0].key.value,
-    ).toBe("PROJECT_NAME");
+    ).toBe("project_name");
   });
 });

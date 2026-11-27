@@ -1,3 +1,3 @@
 export function isTaskLikeSection(key: string): boolean {
-  return key === "tasks" || key.startsWith("tasks_");
+  return key === "tasks";
 }

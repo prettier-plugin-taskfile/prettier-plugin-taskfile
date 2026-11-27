@@ -2,6 +2,21 @@
  * Type definitions for Taskfile structures
  */
 
+export interface TaskfileFormattingOptions {
+  taskfileNormalizeNames?: boolean;
+  taskfileUnsafeRenames?: "preserve" | "error";
+}
+
+export interface TaskfileDiagnostic {
+  code: "unsafe-rename" | "unsafe-ordering";
+  message: string;
+}
+
+export interface TaskfileFormattingResult {
+  text: string;
+  diagnostics: readonly TaskfileDiagnostic[];
+}
+
 export interface TaskfileVars {
   [key: string]: string | number | boolean;
 }

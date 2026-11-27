@@ -70,6 +70,7 @@ describe("kebabCaseTaskNames", () => {
         vars: { BUILD_TYPE: "release" },
         silent: true,
       },
+      clean: { cmds: [] },
     };
 
     const result = kebabCaseTaskNames(input);
@@ -99,7 +100,7 @@ describe("kebabCaseTaskNames", () => {
     expect(result["deploy-production"]).toBeDefined();
   });
 
-  test("should normalize task names consistently", () => {
+  test("preserves every task when normalization would merge definitions", () => {
     const input = {
       task_A: { cmds: ["echo test"] },
       task_a: { cmds: ["echo test"] },
@@ -109,8 +110,10 @@ describe("kebabCaseTaskNames", () => {
 
     const result = kebabCaseTaskNames(input);
 
-    expect(result["task-a"]).toBeDefined();
-    expect(result["task-b"]).toBeDefined();
+    expect(result).toEqual(input);
+    expect(() =>
+      kebabCaseTaskNames(input, { taskfileUnsafeRenames: "error" }),
+    ).toThrow();
   });
 
   test("should handle numbers in task names", () => {

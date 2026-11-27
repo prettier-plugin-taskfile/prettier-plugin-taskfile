@@ -1,0 +1,287 @@
+import * as yaml from "yaml";
+import { NameDefinition, NameReference, RenameAnalysis } from "./rename-types";
+
+const rootTemplateFields = new Set(["vars", "env", "dir"]);
+const taskTemplateFields = new Set([
+  "vars",
+  "env",
+  "cmds",
+  "cmd",
+  "defer",
+  "desc",
+  "summary",
+  "dir",
+  "sources",
+  "generates",
+  "status",
+  "preconditions",
+  "if",
+  "msg",
+  "label",
+  "prefix",
+]);
+
+function keyOf(pair: yaml.Pair): string | undefined {
+  return yaml.isScalar(pair.key) && typeof pair.key.value === "string"
+    ? pair.key.value
+    : undefined;
+}
+
+export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
+  const definitions: NameDefinition[] = [];
+  const references: NameReference[] = [];
+  const hazards = new Set<string>();
+  const hazard = (message: string) => hazards.add(message);
+  const entry = (map: yaml.YAMLMap, name: string) =>
+    map.items.find((pair) => keyOf(pair) === name)?.value;
+
+  function shellInvocation(node: unknown): void {
+    if (
+      yaml.isScalar(node) &&
+      typeof node.value === "string" &&
+      /\btask(?:\s|$)/.test(node.value)
+    )
+      hazard(
+        "Shell Task invocations cannot be rewritten safely; preserving names.",
+      );
+  }
+
+  function inspectStructure(node: unknown): void {
+    if (yaml.isAlias(node)) hazard("YAML aliases require preserving names.");
+    if (yaml.isNode(node) && "anchor" in node && node.anchor)
+      hazard("YAML anchors require preserving names.");
+    if (
+      yaml.isNode(node) &&
+      "tag" in node &&
+      node.tag &&
+      !node.tag.startsWith("tag:yaml.org,2002:")
+    )
+      hazard("Custom YAML tags require preserving names.");
+    if (yaml.isMap(node)) {
+      for (const pair of node.items) {
+        if (keyOf(pair) === undefined || keyOf(pair) === "<<")
+          hazard("Complex keys or YAML merges require preserving names.");
+        if (keyOf(pair) === "ref")
+          hazard("Variable ref expressions require preserving names.");
+        if (keyOf(pair) === "requires" || keyOf(pair) === "for")
+          hazard("Required-variable and loop scopes require preserving names.");
+        if (["sh", "cmd", "if"].includes(keyOf(pair) ?? ""))
+          shellInvocation(pair.value);
+        if (
+          (keyOf(pair) === "status" || keyOf(pair) === "preconditions") &&
+          yaml.isSeq(pair.value)
+        )
+          pair.value.items.forEach(shellInvocation);
+        inspectStructure(pair.key);
+        inspectStructure(pair.value);
+      }
+    } else if (yaml.isSeq(node)) node.items.forEach(inspectStructure);
+  }
+
+  function defineVariables(node: unknown, scope: string): void {
+    if (node === undefined) return;
+    if (!yaml.isMap(node)) {
+      hazard("Non-map variable definitions require preserving names.");
+      return;
+    }
+    for (const pair of node.items) {
+      const name = keyOf(pair);
+      if (name !== undefined && yaml.isScalar(pair.key)) {
+        if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name))
+          hazard("Unsupported variable identifiers require preserving names.");
+        definitions.push(
+          Object.freeze({ node: pair.key, name, kind: "variable", scope }),
+        );
+      }
+    }
+  }
+
+  function templates(
+    node: unknown,
+    scope: string,
+    recognized: boolean,
+    variableMap = false,
+    variableValue = false,
+  ): void {
+    if (yaml.isScalar(node) && typeof node.value === "string") {
+      const text = node.value;
+      if (!text.includes("{{") && !text.includes("}}")) return;
+      if (!recognized)
+        hazard("Templates in unknown fields require preserving names.");
+      let offset = 0;
+      const actions = /\{\{([\s\S]*?)\}\}/g;
+      for (const match of text.matchAll(actions)) {
+        const start = match.index!;
+        if (
+          text.slice(offset, start).includes("{{") ||
+          text.slice(offset, start).includes("}}")
+        )
+          hazard("Malformed templates require preserving names.");
+        const simple = /^(\s*)\.([A-Za-z_][A-Za-z0-9_]*)(\s*)$/.exec(match[1]);
+        if (!simple) hazard("Complex templates require preserving names.");
+        else {
+          const nameStart = start + 2 + simple[1].length + 1;
+          references.push(
+            Object.freeze({
+              node,
+              text,
+              name: simple[2],
+              kind: "variable",
+              scope,
+              start: nameStart,
+              end: nameStart + simple[2].length,
+            }),
+          );
+        }
+        offset = start + match[0].length;
+      }
+      if (
+        text.slice(offset).includes("{{") ||
+        text.slice(offset).includes("}}")
+      )
+        hazard("Malformed templates require preserving names.");
+    } else if (yaml.isMap(node)) {
+      for (const pair of node.items) {
+        templates(pair.key, scope, false);
+        const key = keyOf(pair) ?? "";
+        templates(
+          pair.value,
+          scope,
+          recognized &&
+            (variableMap ||
+              (!variableValue && taskTemplateFields.has(key)) ||
+              key === "sh" ||
+              key === "ref"),
+          key === "vars" || key === "env",
+          variableMap,
+        );
+      }
+    } else if (yaml.isSeq(node))
+      node.items.forEach((item) =>
+        templates(
+          item,
+          scope,
+          recognized && !variableValue,
+          false,
+          variableValue,
+        ),
+      );
+  }
+
+  function taskReference(node: unknown): void {
+    if (
+      !yaml.isScalar(node) ||
+      typeof node.value !== "string" ||
+      node.value.includes("{{")
+    ) {
+      hazard("Dynamic or non-string task references require preserving names.");
+      return;
+    }
+    const text = node.value;
+    const prefix = text.startsWith(":") ? 1 : 0;
+    references.push(
+      Object.freeze({
+        node,
+        text,
+        name: text.slice(prefix),
+        kind: "task",
+        scope: "root",
+        start: prefix,
+        end: text.length,
+      }),
+    );
+  }
+
+  function calls(node: unknown, dependencies: boolean): void {
+    if (node === undefined) return;
+    if (!yaml.isSeq(node)) {
+      hazard(
+        "Unsupported command or dependency forms require preserving names.",
+      );
+      return;
+    }
+    for (const item of node.items) {
+      call(item, dependencies);
+    }
+  }
+
+  function call(item: unknown, dependencies: boolean): void {
+    if (yaml.isMap(item)) {
+      const task = entry(item, "task");
+      if (task !== undefined) {
+        taskReference(task);
+        if (entry(item, "vars") !== undefined)
+          hazard("Task-call variable overrides require preserving names.");
+      } else if (dependencies)
+        hazard("Unsupported dependency mappings require preserving names.");
+      const deferred = entry(item, "defer");
+      if (deferred !== undefined) call(deferred, false);
+      const command = entry(item, "cmd");
+      if (command !== undefined) call(command, false);
+    } else if (dependencies) taskReference(item);
+    else shellInvocation(item);
+  }
+
+  inspectStructure(root);
+  const includes = entry(root, "includes");
+  if (
+    includes !== undefined &&
+    (!yaml.isMap(includes) || includes.items.length > 0)
+  )
+    hazard("Included Taskfiles have external scopes; preserving names.");
+  defineVariables(entry(root, "vars"), "root");
+  const tasks = entry(root, "tasks");
+  if (tasks !== undefined && !yaml.isMap(tasks))
+    hazard("Non-map task definitions require preserving names.");
+  if (yaml.isMap(tasks)) {
+    for (const pair of tasks.items) {
+      const name = keyOf(pair);
+      if (name === undefined || !yaml.isScalar(pair.key)) continue;
+      definitions.push(
+        Object.freeze({ node: pair.key, name, kind: "task", scope: "root" }),
+      );
+      if (/[{}*]/.test(name))
+        hazard("Dynamic task names require preserving names.");
+      const scope = `task:${name}`;
+      if (yaml.isMap(pair.value)) {
+        defineVariables(entry(pair.value, "vars"), scope);
+        if (entry(pair.value, "aliases") !== undefined)
+          hazard("Task aliases require preserving names.");
+        calls(entry(pair.value, "deps"), true);
+        calls(entry(pair.value, "cmds"), false);
+        const command = entry(pair.value, "cmd");
+        if (command !== undefined) call(command, false);
+        for (const field of pair.value.items) {
+          const key = keyOf(field) ?? "";
+          templates(
+            field.value,
+            scope,
+            taskTemplateFields.has(key),
+            key === "vars" || key === "env",
+          );
+        }
+      } else if (yaml.isSeq(pair.value)) {
+        calls(pair.value, false);
+        templates(pair.value, scope, true);
+      } else {
+        call(pair.value, false);
+        templates(pair.value, scope, true);
+      }
+    }
+  }
+  for (const pair of root.items) {
+    if (keyOf(pair) === "tasks") continue;
+    const key = keyOf(pair) ?? "";
+    templates(
+      pair.value,
+      "root",
+      rootTemplateFields.has(key),
+      key === "vars" || key === "env",
+    );
+  }
+  return Object.freeze({
+    definitions: Object.freeze(definitions),
+    references: Object.freeze(references),
+    hazards: Object.freeze([...hazards]),
+  });
+}

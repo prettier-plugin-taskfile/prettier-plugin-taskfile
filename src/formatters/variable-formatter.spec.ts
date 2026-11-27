@@ -7,7 +7,7 @@ describe("uppercaseVariableNames", () => {
       UPPERCASE: "value",
       MixedCase: "value",
       snake_case: "value",
-      "kebab-case": "value",
+      kebab_case: "value",
     };
 
     const result = uppercaseVariableNames(input);
@@ -16,13 +16,13 @@ describe("uppercaseVariableNames", () => {
     expect(Object.keys(result)).toContain("UPPERCASE");
     expect(Object.keys(result)).toContain("MIXEDCASE");
     expect(Object.keys(result)).toContain("SNAKE_CASE");
-    expect(Object.keys(result)).toContain("KEBAB-CASE");
+    expect(Object.keys(result)).toContain("KEBAB_CASE");
 
     expect(result.LOWERCASE).toBe("value");
     expect(result.UPPERCASE).toBe("value");
     expect(result.MIXEDCASE).toBe("value");
     expect(result.SNAKE_CASE).toBe("value");
-    expect(result["KEBAB-CASE"]).toBe("value");
+    expect(result.KEBAB_CASE).toBe("value");
   });
 
   test("should handle empty object", () => {
@@ -64,7 +64,7 @@ describe("uppercaseVariableNames", () => {
     expect(result.BOOLEAN_VAR).toBe(true);
   });
 
-  test("should handle special characters in variable names", () => {
+  test("preserves unsupported variable identifiers instead of guessing reference syntax", () => {
     const input = {
       "var-with-dashes": "value1",
       var_with_underscores: "value2",
@@ -74,10 +74,10 @@ describe("uppercaseVariableNames", () => {
 
     const result = uppercaseVariableNames(input);
 
-    expect(result["VAR-WITH-DASHES"]).toBe("value1");
-    expect(result.VAR_WITH_UNDERSCORES).toBe("value2");
-    expect(result["VAR.WITH.DOTS"]).toBe("value3");
-    expect(result.VAR123).toBe("value4");
+    expect(result).toEqual(input);
+    expect(() =>
+      uppercaseVariableNames(input, { taskfileUnsafeRenames: "error" }),
+    ).toThrow();
   });
 
   test("should handle empty string variable names", () => {
@@ -113,9 +113,7 @@ describe("uppercaseVariableNames", () => {
 
     const result = uppercaseVariableNames(input);
 
-    // These will be converted to strings and then uppercased
-    expect(result["123"]).toBe("numeric key");
-    expect(result["TRUE"]).toBe("boolean key");
+    expect(result).toEqual(input);
   });
 
   test("should maintain property order where possible", () => {
@@ -129,5 +127,10 @@ describe("uppercaseVariableNames", () => {
     const keys = Object.keys(result);
 
     expect(keys).toEqual(["ZEBRA", "ALPHA", "BETA"]);
+  });
+
+  test("preserves colliding variables rather than overwriting their values", () => {
+    const input = { value: "first", VALUE: "second" };
+    expect(uppercaseVariableNames(input)).toEqual(input);
   });
 });
