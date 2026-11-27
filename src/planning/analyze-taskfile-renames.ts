@@ -1,5 +1,6 @@
 import * as yaml from "yaml";
 import { NameDefinition, NameReference, RenameAnalysis } from "./rename-types";
+import { createNameDefinitionIndex } from "./name-definition-index";
 import { hasTemplatedShellCommand } from "../rules/has-templated-shell-command";
 import {
   classifyTaskfileTemplateField,
@@ -343,24 +344,15 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
     );
   }
 
+  const definitionIndex = createNameDefinitionIndex(definitions);
+
   function scalarValue(
     reference: NameReference,
     scope: string,
     seen: Set<yaml.Scalar>,
   ): string | undefined {
-    const definition =
-      definitions.find(
-        (item) =>
-          item.kind === "variable" &&
-          item.scope === scope &&
-          item.name === reference.name,
-      ) ??
-      definitions.find(
-        (item) =>
-          item.kind === "variable" &&
-          item.scope === "root" &&
-          item.name === reference.name,
-      );
+    const resolved = definitionIndex.resolve("variable", reference.name, scope);
+    const definition = resolved?.definition;
     if (!definition) {
       const environmentOverride = [
         environments.get(scope),
@@ -377,8 +369,9 @@ export function analyzeTaskfileRenames(root: yaml.YAMLMap): RenameAnalysis {
     }
     if (
       seen.has(definition.node) ||
-      (reference.definitionLimit !== undefined &&
-        definitions.indexOf(definition) >= reference.definitionLimit)
+      (resolved !== undefined &&
+        reference.definitionLimit !== undefined &&
+        resolved.position >= reference.definitionLimit)
     )
       return undefined;
     const value = variableValues.get(definition.node);
