@@ -1,0 +1,10 @@
+version: "3"
+env:
+  later: outer
+vars:
+  before: "{{.later}}"
+  later: inner
+tasks:
+  caller:
+    cmds:
+      - echo "{{.before}}/{{.later}}"

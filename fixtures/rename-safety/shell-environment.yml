@@ -1,0 +1,10 @@
+version: "3"
+vars:
+  input: hello
+tasks:
+  caller:
+    vars:
+      result:
+        sh: 'echo "$input"'
+    cmds:
+      - echo "{{.result}}"

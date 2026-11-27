@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const { spawnSync } = require("node:child_process");
-const { mkdtempSync, writeFileSync, rmSync } = require("node:fs");
+const { mkdtempSync, readFileSync, writeFileSync, rmSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const { join } = require("node:path");
 const { test } = require("node:test");
@@ -8,6 +8,12 @@ const prettier = require("prettier");
 const yaml = require("yaml");
 const plugin = require("../dist/index.js");
 const { formatTaskfileText, formatTaskfileTextWithDiagnostics } = plugin;
+
+const safetyFixture = (name) =>
+  readFileSync(
+    join(__dirname, "../fixtures/rename-safety", `${name}.yml`),
+    "utf8",
+  );
 
 const fixtures = [
   {
@@ -106,17 +112,7 @@ tasks:
   {
     name: "dynamic variables retain previously resolved shell environment values",
     expected: "hello\n",
-    text: `version: "3"
-vars:
-  input: hello
-tasks:
-  caller:
-    vars:
-      result:
-        sh: 'echo "$input"'
-    cmds:
-      - echo "{{.result}}"
-`,
+    text: safetyFixture("shell-environment"),
   },
   {
     name: "user variables cannot be renamed into Task-owned special variables",
@@ -234,31 +230,12 @@ tasks:
   {
     name: "self-named initializers retain root environment bindings",
     expected: "hello\n",
-    text: `version: "3"
-env:
-  foo: hello
-vars:
-  foo: "{{.foo}}"
-tasks:
-  caller:
-    cmds:
-      - echo "{{.foo}}"
-`,
+    text: safetyFixture("self-initializer"),
   },
   {
     name: "forward initializer references retain earlier environment bindings",
     expected: "outer/inner\n",
-    text: `version: "3"
-env:
-  later: outer
-vars:
-  before: "{{.later}}"
-  later: inner
-tasks:
-  caller:
-    cmds:
-      - echo "{{.before}}/{{.later}}"
-`,
+    text: safetyFixture("forward-initializer"),
   },
 ];
 
