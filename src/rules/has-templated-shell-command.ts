@@ -23,6 +23,8 @@ const commandWrappers = new Set([
 
 export function hasTemplatedShellCommand(command: string): boolean {
   if (!command.includes("{{")) return false;
+  // Redirections can precede the executable or attach to surrounding words.
+  if (/[<>]/.test(command)) return true;
   const marker = "__TASKFILE_TEMPLATE_COMMAND__";
   const substituted = command
     .replace(/\{\{[\s\S]*?\}\}/g, marker)

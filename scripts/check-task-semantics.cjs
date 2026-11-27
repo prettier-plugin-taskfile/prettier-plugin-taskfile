@@ -175,6 +175,24 @@ tasks:
       - "{{.runner}} foo_bar"
 `,
   },
+  ...[
+    ["< /dev/null {{.runner}} foo_bar", "target\n"],
+    [">/dev/null {{.runner}} foo_bar", ""],
+  ].map(([command, expected]) => ({
+    name: `redirections cannot hide template-derived task calls: ${command}`,
+    expected,
+    preservedTask: "foo_bar",
+    text: `version: "3"
+vars:
+  runner: task
+tasks:
+  foo_bar:
+    cmds: [echo target]
+  caller:
+    cmds:
+      - ${JSON.stringify(command)}
+`,
+  })),
   {
     name: "self-named initializers retain root environment bindings",
     expected: "hello\n",
@@ -245,6 +263,17 @@ for (const fixture of fixtures) {
         assert.ok(result.text.includes("root_dir: payload-dir"));
       }
       const formatted = formatTaskfileText(fixture.text, fixture.options);
+      if (fixture.preservedTask) {
+        assert.ok(yaml.parse(formatted).tasks[fixture.preservedTask]);
+        assert.ok(
+          formatTaskfileTextWithDiagnostics(
+            fixture.text,
+            fixture.options,
+          ).diagnostics.some(
+            (diagnostic) => diagnostic.code === "unsafe-rename",
+          ),
+        );
+      }
       if (fixture.renamedTask) {
         assert.ok(yaml.parse(formatted).tasks[fixture.renamedTask]);
         assert.equal(

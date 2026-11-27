@@ -254,6 +254,10 @@ tasks:
     "true; {{.runner}} foo_bar",
     "env {{.runner}} foo_bar",
     "FLAG=1 {{.runner}} foo_bar",
+    "< /dev/null {{.runner}} foo_bar",
+    "</dev/null {{.runner}} foo_bar",
+    ">/dev/null {{.runner}} foo_bar",
+    "2>/dev/null {{.runner}} foo_bar",
   ])("preserves unsupported shell command forms: %s", (command) => {
     const input = yaml.stringify({
       version: "3",
@@ -269,6 +273,22 @@ tasks:
     expect(() =>
       formatTaskfileText(input, { taskfileUnsafeRenames: "error" }),
     ).toThrow("Unsafe Taskfile renames");
+  });
+
+  test("static shell redirections alone do not prevent coordinated task renaming", () => {
+    const source = `version: "3"
+tasks:
+  foo_bar:
+    cmds: ["echo target >/dev/null"]
+  caller:
+    cmds:
+      - task: foo_bar
+`;
+    const result = formatTaskfileTextWithDiagnostics(source);
+    const parsed = yaml.parse(result.text);
+    expect(parsed.tasks["foo-bar"].cmds).toEqual(["echo target >/dev/null"]);
+    expect(parsed.tasks.caller.cmds).toEqual([{ task: "foo-bar" }]);
+    expect(result.diagnostics).toEqual([]);
   });
 
   test("preserves the environment of dynamic shell variables", () => {
