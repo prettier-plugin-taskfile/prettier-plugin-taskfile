@@ -10,7 +10,14 @@ import {
 } from "../types";
 
 export function createTaskfileDocument(text: string): yaml.Document {
-  const doc = yaml.parseDocument(text);
+  let doc: yaml.Document;
+  try {
+    doc = yaml.parseDocument(text);
+  } catch (error) {
+    throw new Error(
+      `Invalid YAML: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+  }
   if (doc.errors.length > 0)
     throw new Error(
       `Invalid YAML: ${doc.errors.map((error) => error.message).join(" ")}`,

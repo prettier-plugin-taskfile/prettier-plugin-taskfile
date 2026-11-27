@@ -60,13 +60,7 @@ export const plugin: Plugin = {
   parsers: {
     "taskfile-yaml": {
       parse: (text: string) => {
-        try {
-          return createTaskfileDocument(text);
-        } catch (error) {
-          throw new Error(
-            `Invalid YAML: ${error instanceof Error ? error.message : "Unknown error"}`,
-          );
-        }
+        return createTaskfileDocument(text);
       },
       astFormat: "taskfile-yaml",
       locStart: (node: any) => {

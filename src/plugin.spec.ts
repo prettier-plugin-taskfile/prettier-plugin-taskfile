@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as yaml from "yaml";
 import { plugin, checkTaskfileFormatting, formatTaskfileText } from "./plugin";
+import { createTaskfileDocument } from "./api/format-taskfile-text";
 
 describe("Prettier Plugin", () => {
   test("the printer forwards the default-false includes rename option", () => {
@@ -90,6 +91,23 @@ describe("Prettier Plugin", () => {
       "Invalid YAML",
     );
   });
+
+  test.each(["tasks: [unfinished", "\t\t\tversion: {\n  invalid"])(
+    "the parser preserves the API's single YAML error prefix: %s",
+    (source) => {
+      let apiError: Error | undefined;
+      try {
+        createTaskfileDocument(source);
+      } catch (error) {
+        apiError = error as Error;
+      }
+      expect(apiError).toBeInstanceOf(Error);
+      expect(apiError!.message.match(/Invalid YAML:/g)).toHaveLength(1);
+      expect(() =>
+        plugin.parsers!["taskfile-yaml"].parse(source, {} as any),
+      ).toThrow(apiError!.message);
+    },
+  );
 
   test("should format simple Taskfile", () => {
     const parser = plugin.parsers!["taskfile-yaml"];
