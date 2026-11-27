@@ -250,13 +250,15 @@ Notice the following changes:
 ## Correctness checks
 
 The implementation has one-way dependencies:
-API/object facades → AST transformations → rename planning → normalization rules.
+API/object facades → AST transformations → rename planning → normalization rules,
+with a separate API → rendering → rules path.
 Rename analysis is read-only; plans are frozen and checked for stale scalar
 values before applying any edits.
 
 ```sh
 npm ci
 npm run build
+npm run check:exports
 npm run check:dependencies
 npm test -- --runInBand
 npm run format:check
@@ -265,7 +267,13 @@ npm run verify:setup
 npm run verify:rename
 ```
 
-The dependency check rejects reverse-layer imports and module cycles.
+The dependency check uses explicit allowed dependencies between source owners
+and rejects forbidden imports and module cycles. Its policy is defined in
+`scripts/check-dependency-direction.cjs`; tests may use higher-level APIs but
+production modules must not depend on test code. This is a static source check,
+not a proof of all runtime dependencies.
+The compiled-package check exercises real CommonJS and ESM loaders through the
+package's public exports, separately from Jest's source export assertions.
 Jest covers specification examples and safety regressions. Seeded `fast-check`
 properties exercise definition/reference consistency, collision preservation,
 scalar/unknown-field preservation, and repeated-format stability. `test:task`
